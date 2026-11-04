@@ -370,7 +370,7 @@ function vp(){
   h+='<select onchange="psel(this.value)">'+evOptions(priEv,false)+'</select>'+
   '<label class="mut" style="display:block;margin-top:8px">Nombre de matchs</label><input type="number" min="1" max="12" value="'+(ev.matches||5)+'" onchange="pcount(this.value)" style="width:90px"></div>';
   var n=ev.matches||5;
-  h+='<div class="card"><div class="warn">Note chaque match de 1 (très à l’aise, vert clair) à 5 (très mal à l’aise, rouge foncé). Touche un nom pour le renommer. Le total par match s’affiche en bas.</div><div class="scroll"><table><tr><th>Joueur</th>';
+  h+='<div class="card"><div class="warn">Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Touche un nom pour le renommer. Le total par match s’affiche en bas.</div><div class="scroll"><table><tr><th>Joueur</th>';
   for(var j=0;j<n;j++)h+='<th class="s" onclick="rn(1,'+j+')">'+esc((ev.enemies&&ev.enemies[j])||"Équipe "+(j+1))+"</th>";
   h+="</tr>";
   players.forEach(function(p,i){
