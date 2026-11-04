@@ -672,7 +672,7 @@ function acctHtml(){
 }
 function pickTheme(force){
   var cur=ld("theme","ork"),pool=THEMES.filter(function(t){return t.id!==cur}),t=pool[Math.floor(Math.random()*pool.length)];
-  applyTheme(t.id);sv("theme",t.id);return t;
+  applyTheme(t.id);sv("theme",t.id);try{sessionStorage.setItem("lb_themed","1")}catch(e){}return t;
 }
 function amenu(e){e.stopPropagation();menuOpen=!menuOpen;render()}
 function alogin(){amode="login";aerr="";ainfo="";go("s")}
@@ -753,9 +753,10 @@ function hideSplash(){
   setTimeout(function(){el.classList.add("out");setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},700)},Math.max(0,1400-(Date.now()-t0)));
 }
 render();
+try{if(AS&&CFG&&!sessionStorage.getItem("lb_themed"))pickTheme()}catch(e){}
 load().then(function(){render();hideSplash();if(AS&&CFG)acctLoad().then(function(){render();syncNow()})});
 setTimeout(hideSplash,7000);
-if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+if("serviceWorker" in navigator){var had=!!navigator.serviceWorker.controller,rl=false;navigator.serviceWorker.addEventListener("controllerchange",function(){if(had&&!rl){rl=true;location.reload()}});window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
 </body>
 </html>
