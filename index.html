@@ -61,7 +61,7 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 .btn.sm{padding:3px 9px;font-size:12px;margin:0}
 @media (max-width:720px){.split{grid-template-columns:1fr}.side{position:static;max-height:none}.split.show-main .side{display:none}.split:not(.show-main) .mainpane{display:none}.back{display:inline-block}}
 .sel button{opacity:.4}.sel button.on{opacity:1;font-weight:800;outline:2px solid var(--tx)}
-.fm input,.fm select{margin-top:6px}.pre{white-space:pre-wrap;font-size:12px;background:#120d0a;border:1px solid var(--bd);border-radius:8px;padding:8px;word-break:break-all}
+.fm input,.fm select{margin-top:6px}.pw{position:relative}.pw input{padding-right:44px}.eye{position:absolute;right:4px;top:6px;height:calc(100% - 6px);width:40px;border:0;background:transparent;font-size:18px;cursor:pointer;color:var(--tx)}.pre{white-space:pre-wrap;font-size:12px;background:#120d0a;border:1px solid var(--bd);border-radius:8px;padding:8px;word-break:break-all}
 #sy{font-size:12px}
 #splash{position:fixed;inset:0;z-index:100;background:#0e0b09 url(hero.jpg) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 24px calc(52px + env(safe-area-inset-bottom,0px));transition:opacity .6s ease}
 #splash::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,11,9,.10) 45%,rgba(14,11,9,.93))}
@@ -594,6 +594,8 @@ function syncNow(){
   .then(function(changed){sbBusy=false;sbSet("ok");var a=document.activeElement;if(changed&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))render()})
   .catch(function(e){sbBusy=false;sbSet("err");window.lastSyncError=String(e.message||e)});
 }
+function pwf(ph,ac){return'<div class="pw"><input id="aw" type="password" placeholder="'+ph+'" autocomplete="'+ac+'"><button type="button" class="eye" onclick="pwt(this)" aria-label="Afficher le mot de passe">👁</button></div>'}
+function pwt(b){var i=b.parentNode.querySelector("input"),s=i.type==="password";i.type=s?"text":"password";b.textContent=s?"🙈":"👁";b.setAttribute("aria-label",s?"Masquer le mot de passe":"Afficher le mot de passe")}
 function fld(id,ph,type){return'<input id="'+id+'" placeholder="'+ph+'"'+(type?' type="'+type+'"':"")+' autocomplete="'+(type==="password"?"current-password":"off")+'">'}
 function vs(){
   var h="";
@@ -605,12 +607,12 @@ function vs(){
   if(!AS){
     var su=amode==="signup";
     h+='<div class="card fm"><div class="chips"><button class="chip'+(su?"":" on")+'" onclick="amd(\'login\')">Connexion</button><button class="chip'+(su?" on":"")+'" onclick="amd(\'signup\')">Créer un compte</button></div>'+
-    '<input id="ae" type="email" placeholder="Adresse e-mail" autocomplete="email">'+(su?fld("ap","Pseudo"):"")+'<input id="aw" type="password" placeholder="Mot de passe (8 caractères minimum)" autocomplete="'+(su?"new-password":"current-password")+'">'+
+    '<input id="ae" type="email" placeholder="Adresse e-mail" autocomplete="email">'+(su?fld("ap","Pseudo"):"")+''+pwf("Mot de passe (8 caractères minimum)",su?"new-password":"current-password")+''+
     '<button class="btn" onclick="'+(su?"asign()":"alog()")+'"'+(abusy?" disabled":"")+">"+(su?"Créer mon compte":"Se connecter")+'</button>'+(su?'<div class="warn">Tu recevras un e-mail pour confirmer ton adresse. Ensuite, l’administrateur doit valider ton compte avant que tu puisses rejoindre une équipe.</div>':'<button class="btn g" onclick="arec()">Mot de passe oublié</button>')+"</div>";
     return h;
   }
   if(pwReset){
-    return h+'<div class="card fm"><b>Nouveau mot de passe</b><input id="aw" type="password" placeholder="Nouveau mot de passe (8 caractères minimum)" autocomplete="new-password"><button class="btn" onclick="apw()">Enregistrer</button></div>';
+    return h+'<div class="card fm"><b>Nouveau mot de passe</b>'+pwf("Nouveau mot de passe (8 caractères minimum)","new-password")+'<button class="btn" onclick="apw()">Enregistrer</button></div>';
   }
   var P=AU.profile;
   h+='<div class="card fm"><div class="army"><div><b>'+esc(P?P.pseudo:"…")+'</b>'+(P&&P.is_admin?' <span class="mut">· administrateur</span>':"")+'<div class="mut">'+esc((P&&P.email)||AS.email||"")+'</div></div><div><button class="btn g" onclick="aref()">↻</button><button class="btn g" onclick="aout()">Déconnexion</button></div></div></div>';
