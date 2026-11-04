@@ -98,7 +98,15 @@ function applyTheme(id){
   s.setProperty("--bd",t.bd);s.setProperty("--onac",t.onac);s.setProperty("--bgrgb",t.bgrgb);s.setProperty("--hero","url("+t.img+")");s.setProperty("--pos",t.pos);
   var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t.bg);
 }
-try{var _t=JSON.parse(localStorage.getItem("lb_theme"));if(_t)applyTheme(_t)}catch(e){}
+function pickTheme(){
+  var cur="ork";try{cur=JSON.parse(localStorage.getItem("lb_theme"))||"ork"}catch(e){}
+  var pool=THEMES.filter(function(t){return t.id!==cur}),t=pool[Math.floor(Math.random()*pool.length)];
+  applyTheme(t.id);try{localStorage.setItem("lb_theme",JSON.stringify(t.id));sessionStorage.setItem("lb_themed","1")}catch(e){}return t;
+}
+try{
+  var _t=JSON.parse(localStorage.getItem("lb_theme"));
+  if(!sessionStorage.getItem("lb_themed"))pickTheme();else if(_t)applyTheme(_t);
+}catch(e){}
 </script>
 </head>
 <body>
@@ -494,7 +502,7 @@ var TK=["data","notes","players","players_u","sbsince","sbmap","priev"];
   if(q.access_token&&q.refresh_token){
     AS={at:q.access_token,rt:q.refresh_token,exp:Math.floor(Date.now()/1000)+(parseInt(q.expires_in,10)||3600)};
     try{var pl=JSON.parse(atob(q.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));AS.uid=pl.sub;AS.email=pl.email}catch(e){}
-    sv("auth",AS);if(q.type==="recovery")pwReset=true;tab="s";setTimeout(function(){pickTheme();render()},0);
+    sv("auth",AS);if(q.type==="recovery")pwReset=true;tab="s";
   }
   if(m||q.access_token||q.error_description)history.replaceState(null,"",location.pathname+location.search);
   if(q.error_description)aerr=q.error_description.replace(/\+/g," ");
@@ -668,11 +676,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration</button><button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button><button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v12</div></div>':"");
-}
-function pickTheme(force){
-  var cur=ld("theme","ork"),pool=THEMES.filter(function(t){return t.id!==cur}),t=pool[Math.floor(Math.random()*pool.length)];
-  applyTheme(t.id);sv("theme",t.id);try{sessionStorage.setItem("lb_themed","1")}catch(e){}return t;
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration</button><button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button><button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v14</div></div>':"");
 }
 function amenu(e){e.stopPropagation();menuOpen=!menuOpen;render()}
 function alogin(){amode="login";aerr="";ainfo="";go("s")}
@@ -707,13 +711,13 @@ function ab(fn){abusy=true;aerr="";ainfo="";render();return fn().catch(function(
 function alog(){
   var e=document.getElementById("ae").value.trim(),w=document.getElementById("aw").value;
   if(!e||!w){aerr="Renseigne l’e-mail et le mot de passe.";render();return}
-  ab(function(){return authCall("token?grant_type=password",{email:e,password:w}).then(function(j){setSession(j);pickTheme();return acctLoad()}).then(function(){syncNow()})});
+  ab(function(){return authCall("token?grant_type=password",{email:e,password:w}).then(function(j){setSession(j);return acctLoad()}).then(function(){syncNow()})});
 }
 function asign(){
   var e=document.getElementById("ae").value.trim(),p=document.getElementById("ap").value.trim(),w=document.getElementById("aw").value;
   if(!e||!p||w.length<8){aerr="E-mail, pseudo et mot de passe d’au moins 8 caractères requis.";render();return}
   ab(function(){return authCall("signup?redirect_to="+encodeURIComponent(location.origin+location.pathname),{email:e,password:w,data:{pseudo:p}}).then(function(j){
-    if(j.access_token){setSession(j);pickTheme();return acctLoad()}
+    if(j.access_token){setSession(j);return acctLoad()}
     amode="login";ainfo="Compte créé. Ouvre l’e-mail de confirmation que tu viens de recevoir, puis connecte-toi.";
   })});
 }
@@ -753,7 +757,6 @@ function hideSplash(){
   setTimeout(function(){el.classList.add("out");setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},700)},Math.max(0,1400-(Date.now()-t0)));
 }
 render();
-try{if(AS&&CFG&&!sessionStorage.getItem("lb_themed"))pickTheme()}catch(e){}
 load().then(function(){render();hideSplash();if(AS&&CFG)acctLoad().then(function(){render();syncNow()})});
 setTimeout(hideSplash,7000);
 if("serviceWorker" in navigator){var had=!!navigator.serviceWorker.controller,rl=false;navigator.serviceWorker.addEventListener("controllerchange",function(){if(had&&!rl){rl=true;location.reload()}});window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
