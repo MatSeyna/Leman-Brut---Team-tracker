@@ -126,7 +126,10 @@ create policy m_del on team_members for delete to authenticated
   using (is_admin() or (user_id = auth.uid() and role <> 'owner') or (can_manage(team_id) and role <> 'owner'));
 
 drop policy if exists d_sel on lb_docs;
-create policy d_sel on lb_docs for select to authenticated using (is_member(team_id));
+-- Les listes personnelles (sans événement) ne sont visibles que par leur auteur et l'administrateur.
+create policy d_sel on lb_docs for select to authenticated using (
+  is_member(team_id) and (k <> 'list' or coalesce(body ->> 'eventId', '') <> '' or split_part(id, '.', 1) = auth.uid()::text or is_admin())
+);
 -- Qui peut écrire quoi : seuls les capitaines créent/modifient les événements ;
 -- chaque joueur dépose sa propre liste (id « <son id>.xxx ») et note ses propres matchs (id « …|…|<son id> »).
 create or replace function doc_ok(t uuid, kind text, did text) returns boolean language sql stable security definer set search_path = public as $$
@@ -140,6 +143,49 @@ drop policy if exists d_ins on lb_docs;
 create policy d_ins on lb_docs for insert to authenticated with check (doc_ok(team_id, k, id));
 drop policy if exists d_upd on lb_docs;
 create policy d_upd on lb_docs for update to authenticated using (doc_ok(team_id, k, id)) with check (doc_ok(team_id, k, id));
+
+-- Limites : 5 événements créés par compte, 5 listes personnelles (sans événement) par compte.
+-- Le créateur d'un événement est enregistré par le serveur (champ « by »). L'administrateur n'a pas de limite.
+create or replace function lb_docs_guard() returns trigger language plpgsql security definer set search_path = public as $$
+declare old_body jsonb; existed boolean := false; n int; me text := auth.uid()::text;
+begin
+  if auth.uid() is null or is_admin() then return new; end if;
+  select body, true into old_body, existed from lb_docs where team_id = new.team_id and k = new.k and id = new.id;
+  existed := coalesce(existed, false);
+  if new.k = 'event' and new.del is not true then
+    if existed then
+      new.body := jsonb_set(coalesce(new.body, '{}'::jsonb), '{by}', coalesce(old_body -> 'by', to_jsonb(me)));
+    else
+      select count(*) into n from lb_docs where k = 'event' and del = false and body ->> 'by' = me;
+      if n >= 5 then raise exception 'Limite atteinte : 5 événements par compte'; end if;
+      new.body := jsonb_set(coalesce(new.body, '{}'::jsonb), '{by}', to_jsonb(me));
+    end if;
+  elsif new.k = 'list' and new.del is not true and coalesce(new.body ->> 'eventId', '') = '' then
+    if not (existed and coalesce(old_body ->> 'eventId', '') = '') then
+      select count(*) into n from lb_docs where k = 'list' and del = false and split_part(id, '.', 1) = me and coalesce(body ->> 'eventId', '') = '';
+      if n >= 5 then raise exception 'Limite atteinte : 5 listes personnelles'; end if;
+    end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists lb_docs_guard on lb_docs;
+create trigger lb_docs_guard before insert or update on lb_docs for each row execute function lb_docs_guard();
+
+-- Suppression automatique des événements 30 jours après leur date (avec leurs listes et notes).
+-- Appelée par l'application à chaque ouverture ; vous pouvez aussi la planifier avec pg_cron.
+create or replace function purge_old_events() returns int language plpgsql security definer set search_path = public as $$
+declare r record; n int := 0;
+begin
+  if auth.uid() is null then return 0; end if;
+  for r in select team_id, id from lb_docs
+           where k = 'event' and del = false and (body ->> 'date') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' and (body ->> 'date')::date < current_date - 30 loop
+    delete from lb_docs where team_id = r.team_id and (
+      (k = 'event' and id = r.id) or (k = 'list' and body ->> 'eventId' = r.id) or (k = 'rate' and id like r.id || '|%'));
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+grant execute on function purge_old_events() to authenticated;
 
 -- Droits : uniquement les comptes connectés (les règles ci-dessus filtrent ensuite ligne par ligne)
 revoke all on profiles, teams, team_members, lb_docs from anon;
