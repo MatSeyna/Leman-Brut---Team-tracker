@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "23 4 * * *"   # every day, about 05:23 / 06:23 Swiss time
   workflow_dispatch:        # lets you run it by hand from the Actions tab
+    inputs:
+      only_analytics:
+        description: "Only refresh the large-sample disposition source (quick)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -26,8 +31,13 @@ jobs:
       - name: Install dependencies
         run: pip install requests beautifulsoup4
 
-      - name: Fetch and store today's stats
+      - name: Fetch and store today's stats (MiniHeadQuarters)
+        if: ${{ !inputs.only_analytics }}
         run: python scripts/scrape.py
+
+      - name: Fetch large-sample dispositions (40k-analytics)
+        continue-on-error: true   # a problem here must never block the main snapshot
+        run: python scripts/scrape_analytics.py
 
       - name: Commit new data
         run: |
@@ -38,5 +48,6 @@ jobs:
             echo "Nothing to commit"
           else
             git commit -m "Daily stats $(date -u +%F)"
+            git pull --rebase origin main || true
             git push
           fi
