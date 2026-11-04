@@ -1,5 +1,5 @@
 // Network first, falls back to the last cached copy when offline.
-var C = "leman-brut-v3";
+var C = "leman-brut-v4";
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(C).then(function (c) {
     return c.addAll(["./", "index.html", "manifest.webmanifest", "icon.svg", "hero.jpg"]);
@@ -13,7 +13,7 @@ self.addEventListener("activate", function (e) {
   self.clients.claim();
 });
 self.addEventListener("fetch", function (e) {
-  if (e.request.method !== "GET") return;
+  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     fetch(e.request).then(function (r) {
       var copy = r.clone();
