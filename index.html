@@ -16,6 +16,13 @@ body{margin:0;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,
 #bg{position:fixed;inset:0;z-index:-1;background:#0e0b09 url(hero.jpg) center 28%/cover no-repeat}
 #bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,11,9,.72),rgba(14,11,9,.86))}
 header{padding:14px 16px 0}
+.hd{display:flex;gap:12px;align-items:flex-start}
+#acct{position:relative;flex:none;min-width:84px}
+.acbtn{background:rgba(224,115,31,.14);border:1px solid var(--ac);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acl{font-size:13px;line-height:1.5}.acl a{color:var(--ac);font-weight:700;text-decoration:none}
+.menu{position:absolute;left:0;top:38px;z-index:20;min-width:210px;background:#17110d;border:1px solid var(--bd);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.6);display:flex;flex-direction:column;overflow:hidden}
+.menu button{background:transparent;border:0;border-bottom:1px solid var(--bd);color:var(--tx);text-align:left;padding:11px 14px;font-size:14px}
+.menu button:last-child{border-bottom:0}.menu button:hover{background:rgba(224,115,31,.14)}
 h1{font:800 26px/1 Impact,"Arial Narrow Bold","Haettenschweiler",sans-serif;margin:0;letter-spacing:.09em;text-transform:uppercase;color:var(--ac);text-shadow:0 0 14px rgba(224,115,31,.45),0 2px 0 #000}
 header::after{content:"";display:block;height:8px;margin-top:10px;background:repeating-conic-gradient(var(--ac2) 0 25%,#0e0b09 0 50%) 0 0/16px 16px;opacity:.95;border-radius:2px}
 .mut{color:var(--mut);font-size:12px}
@@ -78,7 +85,7 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 <body>
 <div id="bg"></div>
 <div id="splash"><h2>Leman Brut</h2><p>Chargement des données</p><div class="ld"><i></i></div></div>
-<header><h1>⚔ Leman Brut</h1><div class="mut" id="upd">Chargement…</div><div class="mut" id="sy"></div></header>
+<header><div class="hd"><div id="acct"></div><div><h1>⚔ Leman Brut</h1><div class="mut" id="upd">Chargement…</div><div class="mut" id="sy"></div></div></div></header>
 <div id="nav"><div class="bar" id="tabs"></div><div class="bar" id="win"></div></div>
 <main id="v"></main>
 <script src="config.js"></script>
@@ -122,15 +129,16 @@ function delta(id){
 }
 
 /* ---------- navigation ---------- */
-var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["a","Listes"],["p","Événements"],["s","Équipe"]];
+var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["p","Événements"]];
 function nav(){
+  var ac=document.getElementById("acct");if(ac)ac.innerHTML=acctHtml();
   document.getElementById("tabs").innerHTML=T.map(function(t){return'<button class="'+(tab===t[0]?"on":"")+'" onclick="go(\''+t[0]+'\')">'+t[1]+"</button>"}).join("");
   var showWin=tab==="w"||tab==="m"||tab==="d";
   var w=document.getElementById("win");
   w.style.display=showWin?"flex":"none";
   w.innerHTML=WK.map(function(k){return'<button class="'+(win===k[0]?"on":"")+'" onclick="setWin(\''+k[0]+'\')">'+k[1]+"</button>"}).join("");
 }
-function go(t){tab=t;sv("tab",t);render()}
+function go(t){tab=t;menuOpen=false;if(t!=="a"&&t!=="s")sv("tab",t);render()}
 function setWin(k){win=k;sv("win",k);render()}
 function render(){
   nav();status();sbSet(sbstate);
@@ -256,7 +264,7 @@ if(!LB){
   if(oldA.length){var oe=uid();LB.events.push({id:oe,name:"Sans événement",date:today()});oldA.forEach(function(a){LB.lists.push({id:uid(),name:a.name,faction:a.f,player:"",eventId:oe,text:a.txt,img:"",created:Date.now()})})}
 }
 LB.rates=LB.rates||{};LB.dead=LB.dead||{};
-var lsel=null,lform=false,lfilter="all",tmpImg="",lpre="";
+var lsel=null,lform=false,tmpImg="",lpre="",lfrom="p",menuOpen=false,svw="me";
 function persist(){if(!sv("data",LB))alert("La mémoire de l’appareil est pleine : supprime des photos ou des listes.");syncSoon()}
 function isMgr(){return !CFG||["owner","captain","admin"].indexOf(myRole(CUR))>=0}
 function me(){return CFG&&AS?{uid:AS.uid,pseudo:AU.profile?AU.profile.pseudo:""}:null}
@@ -289,47 +297,33 @@ function evOptions(sel,withNew,mine){
   if(withNew&&isMgr())o+='<option value="__new"'+(evs.length?"":" selected")+">+ Nouvel événement…</option>";
   return o;
 }
-function sideHtml(){
-  var t=today(),evs=lEvents().filter(function(e){return lfilter==="all"||(lfilter==="up"?e.date>=t:e.date<t)});
-  var h='<div class="side card"><div class="army"><b>Listes</b><button class="btn" onclick="lnew()">+ Nouvelle</button></div><div class="chips">'+
-  [["all","Tous"],["up","À venir"],["past","Passés"]].map(function(c){return'<button class="chip'+(lfilter===c[0]?" on":"")+'" onclick="lflt(\''+c[0]+'\')">'+c[1]+"</button>"}).join("")+"</div>";
-  if(!evs.length)h+='<div class="mut" style="margin-top:12px">'+(LB.events.length?"Aucun événement dans ce filtre.":"Aucune liste pour l’instant. Crée la première avec « + Nouvelle ».")+"</div>";
-  evs.forEach(function(e){
-    var ls=LB.lists.filter(function(l){return l.eventId===e.id});
-    h+='<div class="ev"><div class="evh"><div><b>'+esc(e.name)+'</b><div class="sub">'+esc(fdate(e.date))+" · "+ls.length+" liste"+(ls.length>1?"s":"")+'</div></div>'+(isMgr()?'<button class="btn g sm" onclick="eedit(\''+e.id+'\')">✎</button>':"")+'</div>';
-    ls.forEach(function(l){h+='<div class="li'+(lsel===l.id?" on":"")+'" onclick="lopen(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+"</div></div>"});
-    h+="</div>";
-  });
-  return h+"</div>";
-}
 function detailHtml(){
   var l=listById(lsel);
-  if(!l){lsel=null;return placeholder()}
+  if(!l){lsel=null;tab="p";return vp()}
   var e=evById(l.eventId),own=ownsList(l);
-  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button>'+(own?'<button class="btn g" onclick="ldel()">Supprimer</button>':"")+'</div></div>'+
+  return'<div class="card"><button class="btn g" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button>'+(own?'<button class="btn g" onclick="ldel()">Supprimer</button>':"")+'</div></div>'+
   '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label>'+(own?'<select onchange="lmove(this.value)">'+evOptions(l.eventId,false,true)+'</select>':'<div>'+esc(e?e.name:"—")+"</div>")+
   '<pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(l.text)+"</pre>"+(l.img?'<img class="map" src="'+l.img+'" alt="Disposition">':"")+"</div>";
 }
 function formHtml(){
   var m=me(),evs=myEvents(),canNew=isMgr();
-  if(!evs.length&&!canNew)return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="mut">Tu ne participes à aucun événement pour l’instant. Un capitaine doit t’ajouter à un événement (onglet Événements) avant que tu puisses déposer ta liste.</div></div>';
-  return'<div class="card fm"><button class="btn g back" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px">'+
+  if(!evs.length&&!canNew)return'<div class="card"><button class="btn g" onclick="lback()">← Retour</button><div class="mut">Tu ne participes à aucun événement pour l’instant. Un capitaine doit t’ajouter à un événement (onglet Événements) avant que tu puisses déposer ta liste.</div></div>';
+  return'<div class="card fm"><button class="btn g" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px">'+
   (m?'<div class="mut" style="margin-top:6px">Joueur : <b>'+esc(m.pseudo)+"</b></div>":'<select id="lp">'+players.map(function(p){return"<option>"+esc(p)+"</option>"}).join("")+"</select>")+
   '<select id="lf">'+facOptions("")+'</select><select id="ld">'+dispOptions("",true).replace("—","Disposition de la liste")+"</select>"+
   '<label class="mut">Événement'+(canNew?" : rejoins-en un ou crée-le":"")+'</label><select id="le" onchange="lenew(this.value)">'+evOptions(lpre,true,true)+'</select>'+
   '<div id="lne" style="display:'+(!evs.length&&canNew?"block":"none")+'"><input id="len" placeholder="Nom du nouvel événement"><input id="led" type="date" value="'+today()+'"></div>'+
   '<textarea id="lt" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, facultatif)</label><input type="file" id="li" accept="image/*" onchange="limg(this)"><button class="btn" onclick="lsave()">Enregistrer</button></div>';
 }
-function placeholder(){return'<div class="card mut">Choisis une liste dans la colonne de gauche, ou crée-en une avec « + Nouvelle ».</div>'}
 function va(){
   var g=gate();if(g)return g;
-  var main=lform?formHtml():lsel?detailHtml():placeholder();
-  return'<div class="split'+(lform||lsel?" show-main":"")+'">'+sideHtml()+'<div class="mainpane">'+main+"</div></div>";
+  if(lform)return formHtml();
+  if(lsel)return detailHtml();
+  tab="p";return vp();
 }
 function lnew(eid){lform=true;lsel=null;tmpImg="";lpre=typeof eid==="string"?eid:"";render()}
-function lback(){lform=false;lsel=null;render()}
+function lback(){lform=false;lsel=null;tab=lfrom||"p";render()}
 function lopen(id){lsel=id;lform=false;render()}
-function lflt(f){lfilter=f;render()}
 function lenew(v){document.getElementById("lne").style.display=v==="__new"?"block":"none"}
 function limg(el){
   var f=el.files[0];if(!f)return;
@@ -411,7 +405,7 @@ function vp(){
     var on=inP(p.uid);if(!mgr&&!on)return;
     var l=on?listOf(ev,p.uid):null,mine=AS?AS.uid===p.uid:false;
     h+='<div class="army" style="margin-top:6px"><span>'+(mgr?'<input type="checkbox" style="width:auto;margin:0 8px 0 0"'+(on?" checked":"")+' onchange="ppart(\''+esc(p.uid)+"',this.checked)\">":"")+esc(p.pseudo)+"</span><span>"+
-    (!on?'<span class="mut">—</span>':l?'<span class="up">✓</span> <a href="#" onclick="lopen2(\''+l.id+'\');return false">'+esc(l.name)+"</a>":'<span class="mut">liste manquante</span>'+(mine?' <button class="btn sm" onclick="lnew2(\''+ev.id+'\')">Ajouter ma liste</button>':""))+"</span></div>";
+    (!on?'<span class="mut">—</span>':l?'<span class="up">✓</span> <a href="#" onclick="lopen2(\''+l.id+'\');return false">'+esc(l.name)+"</a>":'<span class="mut">liste manquante</span>'+((mine||!CFG)?' <button class="btn sm" onclick="lnew2(\''+ev.id+'\')">Ajouter '+(CFG?"ma liste":"une liste")+'</button>':""))+"</span></div>";
   });
   h+="</div>";
   var allIn=ev.parts.length>0&&ev.parts.every(function(p){return listOf(ev,p.uid)});
@@ -460,8 +454,9 @@ function ppart(u,on){
 }
 function pen(j,k,v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.en=ev.en||[];for(var q=0;q<=j;q++)if(!ev.en[q])ev.en[q]={};ev.en[j][k]=v;ev.u=Date.now();persist();render()}
 function pforce(){var ev=evById(priEv);if(!ev)return;ev.force=true;ev.u=Date.now();persist();render()}
-function lnew2(eid){tab="a";sv("tab","a");lnew(eid)}
-function lopen2(id){tab="a";sv("tab","a");lopen(id)}
+function lnew2(eid){lfrom=tab==="a"?lfrom:tab;tab="a";lnew(eid)}
+function lopen2(id){lfrom=tab==="a"?lfrom:tab;tab="a";lopen(id)}
+function pgo(id){priEv=id;sv("priev",id);go("p")}
 function rt(j,u,n){
   var ev=evById(priEv);if(!ev||!canRate(u))return;
   var k=ev.id+"|"+j+"|"+u,cur=LB.rates[k];LB.rates[k]={v:cur&&cur.v===n?0:n,u:Date.now()};persist();render();
@@ -516,8 +511,8 @@ function ready(){return !!(AS&&AU.profile&&AU.profile.approved&&CUR&&(AU.profile
 function curName(){var t=AU.teams.filter(function(x){return x.id===CUR})[0];return t?t.name:""}
 function gate(){
   if(!CFG||ready())return"";
-  var m=!AS?"Connecte-toi et rejoins une équipe pour utiliser cet écran (onglet Équipe).":!AU.profile?"Chargement du compte…":!AU.profile.approved?"Ton compte attend la validation de l’administrateur (onglet Équipe).":"Choisis ou rejoins une équipe dans l’onglet Équipe.";
-  return'<div class="card"><div class="mut">'+m+'</div><button class="btn" onclick="go(\'s\')">Aller à l’onglet Équipe</button></div>';
+  var m=!AS?"Connecte-toi et rejoins une équipe pour utiliser cet écran.":!AU.profile?"Chargement du compte…":!AU.profile.approved?"Ton compte attend la validation de l’administrateur (voir ton profil).":"Choisis ou rejoins une équipe depuis ton profil.";
+  return'<div class="card"><div class="mut">'+m+'</div><button class="btn" onclick="'+(!AS?"alogin()":"aprof()")+'">'+(!AS?"Se connecter":"Mon profil")+'</button>'+(!AS?'<button class="btn g" onclick="asignup()">S’inscrire</button>':"")+'</div>';
 }
 function useTeam(id){
   var cur=ld("curteam","");
@@ -618,6 +613,7 @@ function vs(){
   h+='<div class="card fm"><div class="army"><div><b>'+esc(P?P.pseudo:"…")+'</b>'+(P&&P.is_admin?' <span class="mut">· administrateur</span>':"")+'<div class="mut">'+esc((P&&P.email)||AS.email||"")+'</div></div><div><button class="btn g" onclick="aref()">↻</button><button class="btn g" onclick="aout()">Déconnexion</button></div></div></div>';
   if(!P)return h+'<div class="card"><div class="mut">Chargement du compte… Si ce message reste affiché, le script SQL n’a pas encore été exécuté dans Supabase (ou ce compte a été créé avant).</div><button class="btn g" onclick="scopysql()">Copier le script SQL</button></div>';
   if(!P.approved)return h+'<div class="card"><b>Compte en attente</b><div class="mut" style="margin-top:6px">L’administrateur doit valider ton compte. Reviens plus tard et touche ↻.</div></div>';
+  if(svw!=="team"&&ready())return h+vprofile();
   // équipes
   var mine=AU.teams.filter(function(t){return P.is_admin||activeIn(t.id)});
   h+='<div class="card fm"><b>Mon équipe</b>';
@@ -648,6 +644,34 @@ function vs(){
     }).join("")+"</div>";
   }
   return h;
+}
+function acctHtml(){
+  if(!CFG)return"";
+  if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
+  var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration</button><button onclick="aout2()">Déconnexion</button></div>':"");
+}
+function amenu(e){e.stopPropagation();menuOpen=!menuOpen;render()}
+function alogin(){amode="login";aerr="";ainfo="";go("s")}
+function asignup(){amode="signup";aerr="";ainfo="";go("s")}
+function aprof(){svw="me";go("s")}
+function ateamv(){svw="team";go("s")}
+function aout2(){menuOpen=false;aout()}
+document.addEventListener("click",function(){if(menuOpen){menuOpen=false;render()}});
+function vprofile(){
+  var P=AU.profile,t=today(),h="";
+  var mine=LB.events.filter(function(e){return(e.parts||[]).some(function(p){return p.uid===AS.uid})}).sort(function(a,b){return a.date<b.date?-1:1});
+  var up=mine.filter(function(e){return e.date>=t}),past=mine.filter(function(e){return e.date<t}).reverse().slice(0,5);
+  var row=function(e){
+    var l=listOf(e,AS.uid);
+    return'<div class="ev"><div class="evh"><div><b>'+esc(e.name)+'</b><div class="sub">'+esc(fdate(e.date))+'</div></div><button class="btn g sm" onclick="pgo(\''+e.id+'\')">Voir l’événement</button></div>'+
+    (l?'<div class="li" onclick="lopen2(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+'</div></div>':'<div class="mut" style="margin-top:6px">Liste manquante <button class="btn sm" onclick="lnew2(\''+e.id+'\')">Ajouter ma liste</button></div>')+"</div>";
+  };
+  h+='<div class="card"><b>Mes événements à venir</b>'+(up.length?up.map(row).join(""):'<div class="mut" style="margin-top:6px">'+(ready()?"Aucun événement à venir ne t’est assigné.":"Rejoins une équipe pour voir tes événements (menu « Équipe &amp; administration »).")+"</div>")+"</div>";
+  var ml=LB.lists.filter(function(l){return l.uid===AS.uid}).sort(function(a,b){return(b.created||0)-(a.created||0)});
+  h+='<div class="card"><b>Mes listes</b>'+(ml.length?ml.map(function(l){var e=evById(l.eventId);return'<div class="li" onclick="lopen2(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+(e?" · "+esc(e.name)+" · "+esc(fdate(e.date)):"")+"</div></div>"}).join(""):'<div class="mut" style="margin-top:6px">Aucune liste déposée pour l’instant.</div>')+"</div>";
+  if(past.length)h+='<div class="card"><b>Événements passés</b>'+past.map(row).join("")+"</div>";
+  return h+'<div class="card"><button class="btn g" onclick="ateamv()">Équipe &amp; administration</button></div>';
 }
 function scopysql(){try{navigator.clipboard.writeText(SCHEMA_SQL)}catch(e){}}
 function ssetup(){
