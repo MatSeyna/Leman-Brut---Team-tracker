@@ -482,9 +482,10 @@ function vp(){
   h+="</tr>";
   ev.parts.forEach(function(p){
     var l=listOf(ev,p.uid),ed=canRate(p.uid);
-    h+="<tr><td><b>"+esc(pnm(p.uid,p.pseudo))+'</b><div class="sub">'+esc(l?l.faction+(l.disp?" · "+l.disp:""):"pas de liste")+"</div></td>";
+    var pd=pdisp(ev,p.uid);
+    h+="<tr><td><b>"+esc(pnm(p.uid,p.pseudo))+'</b><div class="sub">'+esc(l?l.faction:"pas de liste")+"</div>"+(ed?'<select onchange="pdset(\''+esc(p.uid)+'\',this.value)" style="margin:4px 0 0;min-width:120px">'+dispOptions(pd,true).replace("—","Disposition ?")+"</select>":'<div class="sub">'+esc(pd||"Disposition ?")+"</div>")+"</td>";
     for(var j2=0;j2<n;j2++){
-      var c=(LB.rates[ev.id+"|"+j2+"|"+p.uid]||{}).v||0,en=ev.en[j2]||{},fw=l&&en.f?facWR(l.faction,en.f):null,dw=l&&en.d&&l.disp?dispWR(l.disp,en.d):null;
+      var c=(LB.rates[ev.id+"|"+j2+"|"+p.uid]||{}).v||0,en=ev.en[j2]||{},fw=l&&en.f?facWR(l.faction,en.f):null,dw=en.d&&pd?dispWR(pd,en.d):null;
       h+='<td><div class="sel">'+[1,2,3,4,5].map(function(k){return'<button class="'+(c===k?"on":"")+'" style="background:'+rc(k)+";color:"+rtx(k)+(ed?"":";pointer-events:none")+'" onclick="rt('+j2+",'"+esc(p.uid)+"',"+k+')">'+k+"</button>"}).join("")+"</div>"+
       ((fw||dw!=null)?'<div class="sub">'+(fw?"Armée "+pc(fw.win_rate)+" ("+fw.games+")":"")+(fw&&dw!=null?" · ":"")+(dw!=null?"Dispo "+pc(dw):"")+"</div>":"")+"</td>";
     }
@@ -494,6 +495,8 @@ function vp(){
   for(var j3=0;j3<n;j3++){var t=0;ev.parts.forEach(function(p){t+=(LB.rates[ev.id+"|"+j3+"|"+p.uid]||{}).v||0});h+="<td><b>"+t+"</b></td>"}
   return h+"</tr></table></div></div>";
 }
+function pdisp(ev,u){var r=LB.rates[ev.id+"|d|"+u];if(r&&r.d!==undefined)return r.d;var l=listOf(ev,u);return l&&l.disp||""}
+function pdset(u,d){var ev=evById(priEv);if(!ev||!canRate(u))return;LB.rates[ev.id+"|d|"+u]={v:0,d:d,u:Date.now()};persist();render()}
 function pnew(){priForm=true;render()}
 function pcancel(){priForm=false;render()}
 function psel(id){priEv=id;sv("priev",id);render()}
@@ -607,7 +610,7 @@ function collect(){
   var o={};
   LB.events.forEach(function(e){o["event|"+e.id]={u:e.u||0,b:e}});
   LB.lists.forEach(function(l){o["list|"+l.id]={u:l.u||0,b:l}});
-  Object.keys(LB.rates).forEach(function(k){o["rate|"+k]={u:LB.rates[k].u||0,b:{v:LB.rates[k].v}}});
+  Object.keys(LB.rates).forEach(function(k){var r=LB.rates[k];o["rate|"+k]={u:r.u||0,b:r.d!==undefined?{v:r.v||0,d:r.d}:{v:r.v}}});
   Object.keys(LB.dead).forEach(function(k){o[k]={u:LB.dead[k],del:true}});
   var nu=notes.u||{};Object.keys(nu).forEach(function(k){var q=k.split("|"),v=((notes.r[q[0]]||{})[q[1]])||0;o["note|"+k]={u:nu[k],b:{v:v}}});
   var pu=ld("players_u",0);if(pu)o["players|all"]={u:pu,b:players};
@@ -621,7 +624,7 @@ function applyRemote(r){
     var arr=r.k==="event"?"events":"lists";
     LB[arr]=LB[arr].filter(function(x){return x.id!==id});
     if(r.del)LB.dead[key]=r.u;else{delete LB.dead[key];r.body.u=r.u;LB[arr].push(r.body)}
-  }else if(r.k==="rate"){LB.rates[id]={v:r.body.v,u:r.u}}
+  }else if(r.k==="rate"){LB.rates[id]=r.body.d!==undefined?{v:r.body.v||0,d:r.body.d,u:r.u}:{v:r.body.v,u:r.u}}
   else if(r.k==="note"){var q=id.split("|");notes.r[q[0]]=notes.r[q[0]]||{};notes.r[q[0]][q[1]]=r.body.v;notes.u=notes.u||{};notes.u[id]=r.u;sv("notes",notes)}
   else if(r.k==="players"){players=r.body;sv("players",players);sv("players_u",r.u)}
   sbmap[key]=r.u;return true;
@@ -717,7 +720,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v17</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v18</div></div>':"");
 }
 function pendingCount(){
   var n=0;
