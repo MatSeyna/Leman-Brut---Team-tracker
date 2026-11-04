@@ -95,7 +95,6 @@ function cc(v){return col(30+v*8)}
 function pc(v){return v==null?"–":v.toFixed(1)+"%"}
 
 var players=ld("players",["Joueur 1","Joueur 2","Joueur 3","Joueur 4","Joueur 5"]);
-var enemies=ld("enemies",["Équipe 1","Équipe 2","Équipe 3","Équipe 4","Équipe 5"].map(function(n){return{n:n,r:[0,0,0,0,0]}}));
 var notes=ld("notes",{who:"Équipe",r:{}});
 
 /* ---------- données ---------- */
@@ -123,7 +122,7 @@ function delta(id){
 }
 
 /* ---------- navigation ---------- */
-var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["a","Listes"],["p","Priorités"],["s","Équipe"]];
+var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["a","Listes"],["p","Événements"],["s","Équipe"]];
 function nav(){
   document.getElementById("tabs").innerHTML=T.map(function(t){return'<button class="'+(tab===t[0]?"on":"")+'" onclick="go(\''+t[0]+'\')">'+t[1]+"</button>"}).join("");
   var showWin=tab==="w"||tab==="m"||tab==="d";
@@ -257,35 +256,47 @@ if(!LB){
   if(oldA.length){var oe=uid();LB.events.push({id:oe,name:"Sans événement",date:today()});oldA.forEach(function(a){LB.lists.push({id:uid(),name:a.name,faction:a.f,player:"",eventId:oe,text:a.txt,img:"",created:Date.now()})})}
 }
 LB.rates=LB.rates||{};LB.dead=LB.dead||{};
-var lsel=null,lform=false,lfilter="all",tmpImg="";
+var lsel=null,lform=false,lfilter="all",tmpImg="",lpre="";
 function persist(){if(!sv("data",LB))alert("La mémoire de l’appareil est pleine : supprime des photos ou des listes.");syncSoon()}
+function isMgr(){return !CFG||["owner","captain","admin"].indexOf(myRole(CUR))>=0}
+function me(){return CFG&&AS?{uid:AS.uid,pseudo:AU.profile?AU.profile.pseudo:""}:null}
+function canRate(u){return isMgr()||(AS&&AS.uid===u)}
+function teamPlayers(){
+  if(CFG&&ready())return MEMB.filter(function(m){return m.status==="active"}).map(function(m){return{uid:m.user_id,pseudo:m.profiles?m.profiles.pseudo:"?"}});
+  return players.map(function(p){return{uid:p,pseudo:p}});
+}
 function sortedEvents(){
   var t=today();
   var up=LB.events.filter(function(e){return e.date>=t}).sort(function(a,b){return a.date<b.date?-1:1});
   var pa=LB.events.filter(function(e){return e.date<t}).sort(function(a,b){return a.date<b.date?1:-1});
   return up.concat(pa);
 }
+function lEvents(){return sortedEvents().filter(function(e){return isMgr()||!CFG||(e.parts||[]).some(function(p){return AS&&p.uid===AS.uid})})}
 function evById(id){return LB.events.filter(function(e){return e.id===id})[0]}
 function listById(id){return LB.lists.filter(function(l){return l.id===id})[0]}
-function facOptions(){
-  var names=DATA&&DATA.windows&&DATA.windows.quarter?DATA.windows.quarter.factions.map(function(f){return f.name}).sort():[];
-  if(!names.length)return"<option>Autre</option>";
-  return names.concat(["Autre"]).map(function(n){return"<option>"+esc(n)+"</option>"}).join("");
+function listOf(ev,u){return LB.lists.filter(function(l){return l.eventId===ev.id&&(l.uid||l.player)===u})[0]}
+function ownsList(l){return isMgr()||!CFG||(AS&&l.uid===AS.uid)}
+function facNames(){return DATA&&DATA.windows&&DATA.windows.quarter?DATA.windows.quarter.factions.map(function(f){return f.name}).sort():[]}
+function facOptions(sel){
+  var names=facNames().concat(["Autre"]);
+  return names.map(function(n){return"<option"+(n===sel?" selected":"")+">"+esc(n)+"</option>"}).join("");
 }
+function dispOptions(sel,blank){return(blank?'<option value="">—</option>':"")+DN.map(function(n){return"<option"+(n===sel?" selected":"")+">"+esc(n)+"</option>"}).join("")}
 function evOptions(sel,withNew){
-  var o=sortedEvents().map(function(e){return'<option value="'+e.id+'"'+(e.id===sel?" selected":"")+">"+esc(e.name)+" — "+esc(fdate(e.date))+"</option>"}).join("");
-  if(withNew)o+='<option value="__new"'+(sortedEvents().length?"":" selected")+">+ Nouvel événement…</option>";
+  var evs=lEvents();
+  var o=evs.map(function(e){return'<option value="'+e.id+'"'+(e.id===sel?" selected":"")+">"+esc(e.name)+" — "+esc(fdate(e.date))+"</option>"}).join("");
+  if(withNew&&isMgr())o+='<option value="__new"'+(evs.length?"":" selected")+">+ Nouvel événement…</option>";
   return o;
 }
 function sideHtml(){
-  var t=today(),evs=sortedEvents().filter(function(e){return lfilter==="all"||(lfilter==="up"?e.date>=t:e.date<t)});
+  var t=today(),evs=lEvents().filter(function(e){return lfilter==="all"||(lfilter==="up"?e.date>=t:e.date<t)});
   var h='<div class="side card"><div class="army"><b>Listes</b><button class="btn" onclick="lnew()">+ Nouvelle</button></div><div class="chips">'+
   [["all","Tous"],["up","À venir"],["past","Passés"]].map(function(c){return'<button class="chip'+(lfilter===c[0]?" on":"")+'" onclick="lflt(\''+c[0]+'\')">'+c[1]+"</button>"}).join("")+"</div>";
   if(!evs.length)h+='<div class="mut" style="margin-top:12px">'+(LB.events.length?"Aucun événement dans ce filtre.":"Aucune liste pour l’instant. Crée la première avec « + Nouvelle ».")+"</div>";
   evs.forEach(function(e){
     var ls=LB.lists.filter(function(l){return l.eventId===e.id});
-    h+='<div class="ev"><div class="evh"><div><b>'+esc(e.name)+'</b><div class="sub">'+esc(fdate(e.date))+" · "+ls.length+" liste"+(ls.length>1?"s":"")+'</div></div><button class="btn g sm" onclick="eedit(\''+e.id+'\')">✎</button></div>';
-    ls.forEach(function(l){h+='<div class="li'+(lsel===l.id?" on":"")+'" onclick="lopen(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.player||"—")+" · "+esc(l.faction||"")+"</div></div>"});
+    h+='<div class="ev"><div class="evh"><div><b>'+esc(e.name)+'</b><div class="sub">'+esc(fdate(e.date))+" · "+ls.length+" liste"+(ls.length>1?"s":"")+'</div></div>'+(isMgr()?'<button class="btn g sm" onclick="eedit(\''+e.id+'\')">✎</button>':"")+'</div>';
+    ls.forEach(function(l){h+='<div class="li'+(lsel===l.id?" on":"")+'" onclick="lopen(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+"</div></div>"});
     h+="</div>";
   });
   return h+"</div>";
@@ -293,16 +304,19 @@ function sideHtml(){
 function detailHtml(){
   var l=listById(lsel);
   if(!l){lsel=null;return placeholder()}
-  var e=evById(l.eventId);
-  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.player||"—")+" · "+esc(l.faction||"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button><button class="btn g" onclick="ldel()">Supprimer</button></div></div>'+
-  '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label><select onchange="lmove(this.value)">'+evOptions(l.eventId,false)+'</select>'+
+  var e=evById(l.eventId),own=ownsList(l);
+  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button>'+(own?'<button class="btn g" onclick="ldel()">Supprimer</button>':"")+'</div></div>'+
+  '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label>'+(own?'<select onchange="lmove(this.value)">'+evOptions(l.eventId,false)+'</select>':'<div>'+esc(e?e.name:"—")+"</div>")+
   '<pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(l.text)+"</pre>"+(l.img?'<img class="map" src="'+l.img+'" alt="Disposition">':"")+"</div>";
 }
 function formHtml(){
-  var none=!LB.events.length;
-  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px"><select id="lp">'+players.map(function(p){return"<option>"+esc(p)+"</option>"}).join("")+'</select><select id="lf">'+facOptions()+'</select>'+
-  '<label class="mut">Événement : rejoins-en un ou crée-le</label><select id="le" onchange="lenew(this.value)">'+evOptions("",true)+'</select>'+
-  '<div id="lne" style="display:'+(none?"block":"none")+'"><input id="len" placeholder="Nom du nouvel événement"><input id="led" type="date" value="'+today()+'"></div>'+
+  var m=me(),evs=lEvents(),canNew=isMgr();
+  if(!evs.length&&!canNew)return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="mut">Tu ne participes à aucun événement pour l’instant. Un capitaine doit t’ajouter à un événement (onglet Événements) avant que tu puisses déposer ta liste.</div></div>';
+  return'<div class="card fm"><button class="btn g back" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px">'+
+  (m?'<div class="mut" style="margin-top:6px">Joueur : <b>'+esc(m.pseudo)+"</b></div>":'<select id="lp">'+players.map(function(p){return"<option>"+esc(p)+"</option>"}).join("")+"</select>")+
+  '<select id="lf">'+facOptions("")+'</select><select id="ld">'+dispOptions("",true).replace("—","Disposition de la liste")+"</select>"+
+  '<label class="mut">Événement'+(canNew?" : rejoins-en un ou crée-le":"")+'</label><select id="le" onchange="lenew(this.value)">'+evOptions(lpre,true)+'</select>'+
+  '<div id="lne" style="display:'+(!evs.length&&canNew?"block":"none")+'"><input id="len" placeholder="Nom du nouvel événement"><input id="led" type="date" value="'+today()+'"></div>'+
   '<textarea id="lt" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, facultatif)</label><input type="file" id="li" accept="image/*" onchange="limg(this)"><button class="btn" onclick="lsave()">Enregistrer</button></div>';
 }
 function placeholder(){return'<div class="card mut">Choisis une liste dans la colonne de gauche, ou crée-en une avec « + Nouvelle ».</div>'}
@@ -311,7 +325,7 @@ function va(){
   var main=lform?formHtml():lsel?detailHtml():placeholder();
   return'<div class="split'+(lform||lsel?" show-main":"")+'">'+sideHtml()+'<div class="mainpane">'+main+"</div></div>";
 }
-function lnew(){lform=true;lsel=null;tmpImg="";render()}
+function lnew(eid){lform=true;lsel=null;tmpImg="";lpre=typeof eid==="string"?eid:"";render()}
 function lback(){lform=false;lsel=null;render()}
 function lopen(id){lsel=id;lform=false;render()}
 function lflt(f){lfilter=f;render()}
@@ -325,20 +339,23 @@ function limg(el){
 function lsave(){
   var ev=document.getElementById("le").value,eid=ev;
   if(ev==="__new"){
+    if(!isMgr()){alert("Seul un capitaine peut créer un événement.");return}
     var en=document.getElementById("len").value.trim(),ed=document.getElementById("led").value;
     if(!en){alert("Donne un nom à l’événement.");return}
     if(!/^\d{4}-\d{2}-\d{2}$/.test(ed)){alert("Choisis une date pour l’événement.");return}
-    eid=uid();LB.events.push({id:eid,name:en,date:ed,matches:5,u:Date.now()});
+    eid=uid();LB.events.push({id:eid,name:en,date:ed,matches:5,parts:[],en:[],u:Date.now()});
   }
-  var id=uid();
-  LB.lists.push({id:id,name:document.getElementById("ln").value.trim()||"Sans nom",faction:document.getElementById("lf").value,player:document.getElementById("lp").value,eventId:eid,text:document.getElementById("lt").value,img:tmpImg,created:Date.now(),u:Date.now()});
-  persist();tmpImg="";lform=false;lsel=id;render();
+  if(!eid){alert("Choisis un événement.");return}
+  var m=me(),pl=m?m.pseudo:document.getElementById("lp").value,ow=m?m.uid:pl;
+  var id=(m?m.uid:"loc")+"."+uid();
+  LB.lists.push({id:id,name:document.getElementById("ln").value.trim()||"Sans nom",faction:document.getElementById("lf").value,disp:document.getElementById("ld").value,uid:ow,pseudo:pl,player:pl,eventId:eid,text:document.getElementById("lt").value,img:tmpImg,created:Date.now(),u:Date.now()});
+  persist();tmpImg="";lform=false;lsel=id;lpre="";render();
 }
 function lmove(eid){var l=listById(lsel);if(!l)return;l.eventId=eid;l.u=Date.now();persist();render()}
 function ldel(){var l=listById(lsel);if(!l||!confirm("Supprimer « "+l.name+" » ?"))return;LB.lists=LB.lists.filter(function(x){return x.id!==l.id});LB.dead["list|"+l.id]=Date.now();persist();lsel=null;render()}
 function lcopy(){
   var l=listById(lsel);if(!l)return;
-  var e=evById(l.eventId),t=l.name+" ("+l.faction+")\n"+(l.player?l.player+" · ":"")+(e?e.name+" · "+fdate(e.date):"")+"\n\n"+l.text;
+  var e=evById(l.eventId),t=l.name+" ("+l.faction+")\n"+((l.pseudo||l.player)?(l.pseudo||l.player)+" · ":"")+(e?e.name+" · "+fdate(e.date):"")+"\n\n"+l.text;
   try{navigator.clipboard.writeText(t)}catch(x){}
 }
 function eedit(id){
@@ -357,59 +374,100 @@ function eedit(id){
   e.name=n;e.date=d;e.u=Date.now();persist();render();
 }
 
-/* ---------- priorités ---------- */
+/* ---------- événements : participants, adversaires, ressenti ---------- */
 var priEv=ld("priev",""),priForm=false;
 function rc(v){var t=(v-1)/4;return"hsl("+Math.round(115-t*115)+","+Math.round(55+t*15)+"%,"+Math.round(68-t*36)+"%)"}
 function rtx(v){return v>=4?"#fff":"#111"}
+function facWR(a,b){
+  var w=DATA&&DATA.windows&&DATA.windows.quarter;if(!w||!a||!b)return null;
+  var f=w.factions.filter(function(x){return x.name===a})[0];if(!f)return null;
+  var r=(w.matchups[String(f.id)]||[]).filter(function(x){return x.name===b})[0];
+  return r&&r.win_rate!=null?r:null;
+}
+function dispWR(a,b){
+  var A=ANA&&ANA.disposition;if(!A||!a||!b)return null;
+  var v=A.views[0];if(a===b)return null;
+  var p=v.pairs.filter(function(q){return(q.a===a&&q.b===b)||(q.a===b&&q.b===a)})[0];
+  return p?(p.a===a?p.a_win:p.b_win)+p.draw/2:null;
+}
 function vp(){
   var g=gate();if(g)return g;
-  var evs=sortedEvents(),ev=evById(priEv);
-  if(!ev&&evs.length&&!priForm){ev=evs.filter(function(e){return e.date>=today()}).pop()||evs[0];priEv=ev.id}
-  var h='<div class="card fm"><div class="army"><b>Événement</b><button class="btn" onclick="pnew()">+ Nouveau</button></div>';
-  if(priForm||!evs.length){
+  var evs=lEvents(),ev=evById(priEv),mgr=isMgr();
+  if((!ev||evs.indexOf(ev)<0)&&evs.length&&!priForm){ev=evs.filter(function(e){return e.date>=today()}).pop()||evs[0];priEv=ev.id}
+  var h='<div class="card fm"><div class="army"><b>Événements</b>'+(mgr?'<button class="btn" onclick="pnew()">+ Nouveau</button>':"")+"</div>";
+  if(priForm||(!evs.length&&mgr)){
     h+='<input id="pn" placeholder="Nom de l’événement"><input id="pd" type="date" value="'+today()+'"><label class="mut">Nombre de matchs de l’équipe</label><input id="pm" type="number" min="1" max="12" value="5"><button class="btn" onclick="psave()">Créer</button>'+(evs.length?'<button class="btn g" onclick="pcancel()">Annuler</button>':"");
     return h+"</div>";
   }
-  h+='<select onchange="psel(this.value)">'+evOptions(priEv,false)+'</select>'+
-  '<label class="mut" style="display:block;margin-top:8px">Nombre de matchs</label><input type="number" min="1" max="12" value="'+(ev.matches||5)+'" onchange="pcount(this.value)" style="width:90px"></div>';
+  if(!evs.length)return h+'<div class="mut" style="margin-top:8px">Aucun événement pour toi pour l’instant. Un capitaine de l’équipe doit en créer un et t’y ajouter.</div></div>';
+  h+='<select onchange="psel(this.value)">'+evOptions(priEv,false)+"</select>";
+  if(mgr)h+='<label class="mut" style="display:block;margin-top:8px">Nombre de matchs</label><input type="number" min="1" max="12" value="'+(ev.matches||5)+'" onchange="pcount(this.value)" style="width:90px"><button class="btn g sm" onclick="eedit(\''+ev.id+'\')">Renommer / date / supprimer</button>';
+  h+="</div>";
+  ev.parts=ev.parts||[];ev.en=ev.en||[];
+  var tp=teamPlayers(),inP=function(u){return ev.parts.some(function(p){return p.uid===u})};
+  h+='<div class="card"><b>Participants et listes</b>'+(mgr?'<div class="warn">Coche les joueurs qui participent : ils sont ajoutés à l’événement et doivent y déposer leur liste.</div>':"");
+  tp.forEach(function(p){
+    var on=inP(p.uid);if(!mgr&&!on)return;
+    var l=on?listOf(ev,p.uid):null,mine=AS?AS.uid===p.uid:false;
+    h+='<div class="army" style="margin-top:6px"><span>'+(mgr?'<input type="checkbox" style="width:auto;margin:0 8px 0 0"'+(on?" checked":"")+' onchange="ppart(\''+esc(p.uid)+"',this.checked)\">":"")+esc(p.pseudo)+"</span><span>"+
+    (!on?'<span class="mut">—</span>':l?'<span class="up">✓</span> <a href="#" onclick="lopen2(\''+l.id+'\');return false">'+esc(l.name)+"</a>":'<span class="mut">liste manquante</span>'+(mine?' <button class="btn sm" onclick="lnew2(\''+ev.id+'\')">Ajouter ma liste</button>':""))+"</span></div>";
+  });
+  h+="</div>";
+  var allIn=ev.parts.length>0&&ev.parts.every(function(p){return listOf(ev,p.uid)});
+  if(!allIn&&!ev.force){
+    h+='<div class="card"><div class="mut">Le tableau des matchs s’affiche dès que tous les participants ont déposé leur liste.'+(ev.parts.length?"":" Commence par choisir les participants.")+"</div>"+(mgr&&ev.parts.length?'<button class="btn g" onclick="pforce()">Afficher quand même</button>':"")+"</div>";
+    return h;
+  }
   var n=ev.matches||5;
-  h+='<div class="card"><div class="warn">Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Touche un nom pour le renommer. Le total par match s’affiche en bas.</div><div class="scroll"><table><tr><th>Joueur</th>';
-  for(var j=0;j<n;j++)h+='<th class="s" onclick="rn(1,'+j+')">'+esc((ev.enemies&&ev.enemies[j])||"Équipe "+(j+1))+"</th>";
+  h+='<div class="card"><div class="warn">Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
+  for(var j=0;j<n;j++){
+    var e=ev.en[j]||{};
+    h+="<th>"+(mgr?'<select onchange="pen('+j+',\'f\',this.value)" style="margin:0 0 4px;min-width:120px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+j+',\'d\',this.value)" style="margin:0;min-width:120px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Match '+(j+1)+"</div></th>";
+  }
   h+="</tr>";
-  players.forEach(function(p,i){
-    h+='<tr><td onclick="rn(0,'+i+')" style="cursor:pointer">'+esc(p)+"</td>";
-    for(var j=0;j<n;j++){
-      var c=(LB.rates[ev.id+"|"+j+"|"+i]||{}).v||0;
-      h+='<td><div class="sel">'+[1,2,3,4,5].map(function(k){return'<button class="'+(c===k?"on":"")+'" style="background:'+rc(k)+";color:"+rtx(k)+'" onclick="rt('+j+","+i+","+k+')">'+k+"</button>"}).join("")+"</div></td>";
+  ev.parts.forEach(function(p){
+    var l=listOf(ev,p.uid),ed=canRate(p.uid);
+    h+="<tr><td><b>"+esc(p.pseudo)+'</b><div class="sub">'+esc(l?l.faction+(l.disp?" · "+l.disp:""):"pas de liste")+"</div></td>";
+    for(var j2=0;j2<n;j2++){
+      var c=(LB.rates[ev.id+"|"+j2+"|"+p.uid]||{}).v||0,en=ev.en[j2]||{},fw=l&&en.f?facWR(l.faction,en.f):null,dw=l&&en.d&&l.disp?dispWR(l.disp,en.d):null;
+      h+='<td><div class="sel">'+[1,2,3,4,5].map(function(k){return'<button class="'+(c===k?"on":"")+'" style="background:'+rc(k)+";color:"+rtx(k)+(ed?"":";pointer-events:none")+'" onclick="rt('+j2+",'"+esc(p.uid)+"',"+k+')">'+k+"</button>"}).join("")+"</div>"+
+      ((fw||dw!=null)?'<div class="sub">'+(fw?"Armée "+pc(fw.win_rate)+" ("+fw.games+")":"")+(fw&&dw!=null?" · ":"")+(dw!=null?"Dispo "+pc(dw):"")+"</div>":"")+"</td>";
     }
     h+="</tr>";
   });
   h+="<tr><td><b>Total</b></td>";
-  for(var j2=0;j2<n;j2++){var t=0;players.forEach(function(p,i){t+=(LB.rates[ev.id+"|"+j2+"|"+i]||{}).v||0});h+="<td><b>"+t+"</b></td>"}
+  for(var j3=0;j3<n;j3++){var t=0;ev.parts.forEach(function(p){t+=(LB.rates[ev.id+"|"+j3+"|"+p.uid]||{}).v||0});h+="<td><b>"+t+"</b></td>"}
   return h+"</tr></table></div></div>";
 }
 function pnew(){priForm=true;render()}
 function pcancel(){priForm=false;render()}
 function psel(id){priEv=id;sv("priev",id);render()}
 function psave(){
+  if(!isMgr())return;
   var n=document.getElementById("pn").value.trim(),d=document.getElementById("pd").value,m=Math.max(1,Math.min(12,parseInt(document.getElementById("pm").value,10)||5));
   if(!n){alert("Donne un nom à l’événement.");return}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert("Choisis une date.");return}
-  var id=uid();LB.events.push({id:id,name:n,date:d,matches:m,u:Date.now()});
+  var id=uid();LB.events.push({id:id,name:n,date:d,matches:m,parts:[],en:[],u:Date.now()});
   priEv=id;sv("priev",id);priForm=false;persist();render();
 }
-function pcount(v){var ev=evById(priEv);if(!ev)return;ev.matches=Math.max(1,Math.min(12,parseInt(v,10)||5));ev.u=Date.now();persist();render()}
-function rt(j,i,n){var ev=evById(priEv);if(!ev)return;var k=ev.id+"|"+j+"|"+i,cur=LB.rates[k];LB.rates[k]={v:cur&&cur.v===n?0:n,u:Date.now()};persist();render()}
-function rn(kind,i){
-  var ev=evById(priEv),cur=kind?((ev.enemies&&ev.enemies[i])||"Équipe "+(i+1)):players[i],v=prompt("Nouveau nom",cur);
-  if(v===null||!v.trim())return;
-  if(kind){ev.enemies=ev.enemies||[];for(var q=0;q<=i;q++)if(!ev.enemies[q])ev.enemies[q]="Équipe "+(q+1);ev.enemies[i]=v.trim();ev.u=Date.now();persist()}
-  else{players[i]=v.trim();sv("players",players);sv("players_u",Date.now());syncSoon()}
-  render();
+function pcount(v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.matches=Math.max(1,Math.min(12,parseInt(v,10)||5));ev.u=Date.now();persist();render()}
+function ppart(u,on){
+  var ev=evById(priEv);if(!ev||!isMgr())return;
+  ev.parts=(ev.parts||[]).filter(function(p){return p.uid!==u});
+  if(on){var t=teamPlayers().filter(function(x){return x.uid===u})[0];if(t)ev.parts.push({uid:t.uid,pseudo:t.pseudo})}
+  ev.u=Date.now();persist();render();
+}
+function pen(j,k,v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.en=ev.en||[];for(var q=0;q<=j;q++)if(!ev.en[q])ev.en[q]={};ev.en[j][k]=v;ev.u=Date.now();persist();render()}
+function pforce(){var ev=evById(priEv);if(!ev)return;ev.force=true;ev.u=Date.now();persist();render()}
+function lnew2(eid){tab="a";sv("tab","a");lnew(eid)}
+function lopen2(id){tab="a";sv("tab","a");lopen(id)}
+function rt(j,u,n){
+  var ev=evById(priEv);if(!ev||!canRate(u))return;
+  var k=ev.id+"|"+j+"|"+u,cur=LB.rates[k];LB.rates[k]={v:cur&&cur.v===n?0:n,u:Date.now()};persist();render();
 }
 
 /* ---------- comptes, équipes & synchro (Supabase) ---------- */
-var SCHEMA_SQL="-- Leman Brut : comptes, équipes et données partagées.\n-- À exécuter une fois dans Supabase > SQL Editor > Run.\n\n-- Nettoyage de l'ancienne table de test (première version, sans comptes), si elle existe.\ndo $$ begin\n  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team')\n     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team_id') then\n    drop table lb_docs;\n  end if;\nend $$;\n\ncreate table if not exists profiles (\n  id uuid primary key references auth.users on delete cascade,\n  email text not null,\n  pseudo text not null,\n  approved boolean not null default false,\n  is_admin boolean not null default false,\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists profiles_pseudo_uq on profiles (lower(pseudo));\n\ncreate table if not exists teams (\n  id uuid primary key default gen_random_uuid(),\n  name text not null,\n  created_by uuid not null references profiles (id),\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists teams_name_uq on teams (lower(name));\n\ncreate table if not exists team_members (\n  team_id uuid not null references teams (id) on delete cascade,\n  user_id uuid not null references profiles (id) on delete cascade,\n  role text not null default 'member' check (role in ('owner', 'captain', 'member')),\n  status text not null default 'pending' check (status in ('pending', 'active')),\n  primary key (team_id, user_id)\n);\n\ncreate table if not exists lb_docs (\n  team_id uuid not null references teams (id) on delete cascade,\n  k text not null,\n  id text not null,\n  body jsonb,\n  u bigint not null,\n  del boolean not null default false,\n  primary key (team_id, k, id)\n);\n\n-- Fonctions d'aide (security definer : évitent les boucles de règles)\ncreate or replace function is_admin() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and is_admin and approved)\n$$;\ncreate or replace function is_approved() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and approved)\n$$;\ncreate or replace function is_member(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active')\n$$;\ncreate or replace function can_manage(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role in ('owner', 'captain'))\n$$;\ncreate or replace function is_owner(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role = 'owner')\n$$;\ncreate or replace function shares_team(u uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select exists (\n    select 1 from team_members a join team_members b on a.team_id = b.team_id\n    where a.user_id = auth.uid() and a.status = 'active' and b.user_id = u)\n$$;\n\n-- Création automatique du profil. Le compte matthieu.seynaeve.pro@hotmail.com devient\n-- l'administrateur « Iscalis » (il doit confirmer cette adresse par e-mail pour se connecter).\ncreate or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$\ndeclare p text; adm boolean;\nbegin\n  adm := lower(new.email) = 'matthieu.seynaeve.pro@hotmail.com';\n  p := coalesce(nullif(trim(new.raw_user_meta_data ->> 'pseudo'), ''), split_part(new.email, '@', 1));\n  if adm then p := 'Iscalis';\n  elsif lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé';\n  end if;\n  insert into profiles (id, email, pseudo, approved, is_admin) values (new.id, new.email, left(p, 30), adm, adm);\n  return new;\nend $$;\ndrop trigger if exists on_auth_user_created on auth.users;\ncreate trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();\n\n-- Le créateur d'une équipe en devient automatiquement le responsable.\ncreate or replace function handle_new_team() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  insert into team_members (team_id, user_id, role, status) values (new.id, new.created_by, 'owner', 'active');\n  return new;\nend $$;\ndrop trigger if exists on_team_created on teams;\ncreate trigger on_team_created after insert on teams for each row execute function handle_new_team();\n\n-- Règles d'accès\nalter table profiles enable row level security;\nalter table teams enable row level security;\nalter table team_members enable row level security;\nalter table lb_docs enable row level security;\n\ndrop policy if exists p_sel on profiles;\ncreate policy p_sel on profiles for select to authenticated using (id = auth.uid() or is_admin() or shares_team(id));\ndrop policy if exists p_upd on profiles;\ncreate policy p_upd on profiles for update to authenticated using (is_admin()) with check (is_admin());\n\ndrop policy if exists t_sel on teams;\ncreate policy t_sel on teams for select to authenticated using (is_approved());\ndrop policy if exists t_ins on teams;\ncreate policy t_ins on teams for insert to authenticated with check (is_approved() and created_by = auth.uid());\ndrop policy if exists t_upd on teams;\ncreate policy t_upd on teams for update to authenticated using (can_manage(id)) with check (can_manage(id));\ndrop policy if exists t_del on teams;\ncreate policy t_del on teams for delete to authenticated using (is_owner(id));\n\ndrop policy if exists m_sel on team_members;\ncreate policy m_sel on team_members for select to authenticated using (user_id = auth.uid() or is_member(team_id));\ndrop policy if exists m_ins on team_members;\ncreate policy m_ins on team_members for insert to authenticated\n  with check (is_admin() or (user_id = auth.uid() and role = 'member' and status = 'pending' and is_approved()));\ndrop policy if exists m_upd on team_members;\ncreate policy m_upd on team_members for update to authenticated\n  using (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)))\n  with check (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)));\ndrop policy if exists m_del on team_members;\ncreate policy m_del on team_members for delete to authenticated\n  using (is_admin() or (user_id = auth.uid() and role <> 'owner') or (can_manage(team_id) and role <> 'owner'));\n\ndrop policy if exists d_sel on lb_docs;\ncreate policy d_sel on lb_docs for select to authenticated using (is_member(team_id));\ndrop policy if exists d_ins on lb_docs;\ncreate policy d_ins on lb_docs for insert to authenticated with check (is_member(team_id));\ndrop policy if exists d_upd on lb_docs;\ncreate policy d_upd on lb_docs for update to authenticated using (is_member(team_id)) with check (is_member(team_id));\n\n-- Droits : uniquement les comptes connectés (les règles ci-dessus filtrent ensuite ligne par ligne)\nrevoke all on profiles, teams, team_members, lb_docs from anon;\ngrant usage on schema public to authenticated;\ngrant select, insert, update, delete on profiles, teams, team_members, lb_docs to authenticated;\ngrant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid) to authenticated;\n\n-- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.\ninsert into profiles (id, email, pseudo, approved, is_admin)\nselect u.id, u.email,\n  case when lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com' then 'Iscalis'\n       else left(coalesce(nullif(trim(u.raw_user_meta_data ->> 'pseudo'), ''), split_part(u.email, '@', 1)), 30) end,\n  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com',\n  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com'\nfrom auth.users u\nwhere not exists (select 1 from profiles p where p.id = u.id)\non conflict do nothing;\n\nnotify pgrst, 'reload schema';\n";
+var SCHEMA_SQL="-- Leman Brut : comptes, équipes et données partagées.\n-- À exécuter une fois dans Supabase > SQL Editor > Run.\n\n-- Nettoyage de l'ancienne table de test (première version, sans comptes), si elle existe.\ndo $$ begin\n  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team')\n     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team_id') then\n    drop table lb_docs;\n  end if;\nend $$;\n\ncreate table if not exists profiles (\n  id uuid primary key references auth.users on delete cascade,\n  email text not null,\n  pseudo text not null,\n  approved boolean not null default false,\n  is_admin boolean not null default false,\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists profiles_pseudo_uq on profiles (lower(pseudo));\n\ncreate table if not exists teams (\n  id uuid primary key default gen_random_uuid(),\n  name text not null,\n  created_by uuid not null references profiles (id),\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists teams_name_uq on teams (lower(name));\n\ncreate table if not exists team_members (\n  team_id uuid not null references teams (id) on delete cascade,\n  user_id uuid not null references profiles (id) on delete cascade,\n  role text not null default 'member' check (role in ('owner', 'captain', 'member')),\n  status text not null default 'pending' check (status in ('pending', 'active')),\n  primary key (team_id, user_id)\n);\n\ncreate table if not exists lb_docs (\n  team_id uuid not null references teams (id) on delete cascade,\n  k text not null,\n  id text not null,\n  body jsonb,\n  u bigint not null,\n  del boolean not null default false,\n  primary key (team_id, k, id)\n);\n\n-- Fonctions d'aide (security definer : évitent les boucles de règles)\ncreate or replace function is_admin() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and is_admin and approved)\n$$;\ncreate or replace function is_approved() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and approved)\n$$;\ncreate or replace function is_member(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active')\n$$;\ncreate or replace function can_manage(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role in ('owner', 'captain'))\n$$;\ncreate or replace function is_owner(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role = 'owner')\n$$;\ncreate or replace function shares_team(u uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select exists (\n    select 1 from team_members a join team_members b on a.team_id = b.team_id\n    where a.user_id = auth.uid() and a.status = 'active' and b.user_id = u)\n$$;\n\n-- Création automatique du profil. Le compte matthieu.seynaeve.pro@hotmail.com devient\n-- l'administrateur « Iscalis » (il doit confirmer cette adresse par e-mail pour se connecter).\ncreate or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$\ndeclare p text; adm boolean;\nbegin\n  adm := lower(new.email) = 'matthieu.seynaeve.pro@hotmail.com';\n  p := coalesce(nullif(trim(new.raw_user_meta_data ->> 'pseudo'), ''), split_part(new.email, '@', 1));\n  if adm then p := 'Iscalis';\n  elsif lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé';\n  end if;\n  insert into profiles (id, email, pseudo, approved, is_admin) values (new.id, new.email, left(p, 30), adm, adm);\n  return new;\nend $$;\ndrop trigger if exists on_auth_user_created on auth.users;\ncreate trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();\n\n-- Le créateur d'une équipe en devient automatiquement le responsable.\ncreate or replace function handle_new_team() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  insert into team_members (team_id, user_id, role, status) values (new.id, new.created_by, 'owner', 'active');\n  return new;\nend $$;\ndrop trigger if exists on_team_created on teams;\ncreate trigger on_team_created after insert on teams for each row execute function handle_new_team();\n\n-- Règles d'accès\nalter table profiles enable row level security;\nalter table teams enable row level security;\nalter table team_members enable row level security;\nalter table lb_docs enable row level security;\n\ndrop policy if exists p_sel on profiles;\ncreate policy p_sel on profiles for select to authenticated using (id = auth.uid() or is_admin() or shares_team(id));\ndrop policy if exists p_upd on profiles;\ncreate policy p_upd on profiles for update to authenticated using (is_admin()) with check (is_admin());\n\ndrop policy if exists t_sel on teams;\ncreate policy t_sel on teams for select to authenticated using (is_approved());\ndrop policy if exists t_ins on teams;\ncreate policy t_ins on teams for insert to authenticated with check (is_approved() and created_by = auth.uid());\ndrop policy if exists t_upd on teams;\ncreate policy t_upd on teams for update to authenticated using (can_manage(id)) with check (can_manage(id));\ndrop policy if exists t_del on teams;\ncreate policy t_del on teams for delete to authenticated using (is_owner(id));\n\ndrop policy if exists m_sel on team_members;\ncreate policy m_sel on team_members for select to authenticated using (user_id = auth.uid() or is_member(team_id));\ndrop policy if exists m_ins on team_members;\ncreate policy m_ins on team_members for insert to authenticated\n  with check (is_admin() or (user_id = auth.uid() and role = 'member' and status = 'pending' and is_approved()));\ndrop policy if exists m_upd on team_members;\ncreate policy m_upd on team_members for update to authenticated\n  using (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)))\n  with check (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)));\ndrop policy if exists m_del on team_members;\ncreate policy m_del on team_members for delete to authenticated\n  using (is_admin() or (user_id = auth.uid() and role <> 'owner') or (can_manage(team_id) and role <> 'owner'));\n\ndrop policy if exists d_sel on lb_docs;\ncreate policy d_sel on lb_docs for select to authenticated using (is_member(team_id));\n-- Qui peut écrire quoi : seuls les capitaines créent/modifient les événements ;\n-- chaque joueur dépose sa propre liste (id « <son id>.xxx ») et note ses propres matchs (id « …|…|<son id> »).\ncreate or replace function doc_ok(t uuid, kind text, did text) returns boolean language sql stable security definer set search_path = public as $$\n  select is_member(t) and case kind\n    when 'event' then can_manage(t)\n    when 'list' then can_manage(t) or split_part(did, '.', 1) = auth.uid()::text\n    when 'rate' then can_manage(t) or split_part(did, '|', 3) = auth.uid()::text\n    else true end\n$$;\ndrop policy if exists d_ins on lb_docs;\ncreate policy d_ins on lb_docs for insert to authenticated with check (doc_ok(team_id, k, id));\ndrop policy if exists d_upd on lb_docs;\ncreate policy d_upd on lb_docs for update to authenticated using (doc_ok(team_id, k, id)) with check (doc_ok(team_id, k, id));\n\n-- Droits : uniquement les comptes connectés (les règles ci-dessus filtrent ensuite ligne par ligne)\nrevoke all on profiles, teams, team_members, lb_docs from anon;\ngrant usage on schema public to authenticated;\ngrant select, insert, update, delete on profiles, teams, team_members, lb_docs to authenticated;\ngrant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid), doc_ok(uuid, text, text) to authenticated;\n\n-- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.\ninsert into profiles (id, email, pseudo, approved, is_admin)\nselect u.id, u.email,\n  case when lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com' then 'Iscalis'\n       else left(coalesce(nullif(trim(u.raw_user_meta_data ->> 'pseudo'), ''), split_part(u.email, '@', 1)), 30) end,\n  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com',\n  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com'\nfrom auth.users u\nwhere not exists (select 1 from profiles p where p.id = u.id)\non conflict do nothing;\n\nnotify pgrst, 'reload schema';\n";
 var CFG=ld("sbcfg",null)||(window.LB_CONFIG&&window.LB_CONFIG.url?{url:window.LB_CONFIG.url,key:window.LB_CONFIG.key}:null);
 var AS=ld("auth",null),AU=ld("au",{profile:null,mem:[],teams:[]}),CUR=ld("curteam",""),amode="login",pwReset=false,aerr="",ainfo="",abusy=false;
 var sbmap=ld("sbmap",{}),sbstate=CFG?"…":"local",sbT=null,sbBusy=false,MEMB=[],ACCS=[];

@@ -127,16 +127,25 @@ create policy m_del on team_members for delete to authenticated
 
 drop policy if exists d_sel on lb_docs;
 create policy d_sel on lb_docs for select to authenticated using (is_member(team_id));
+-- Qui peut écrire quoi : seuls les capitaines créent/modifient les événements ;
+-- chaque joueur dépose sa propre liste (id « <son id>.xxx ») et note ses propres matchs (id « …|…|<son id> »).
+create or replace function doc_ok(t uuid, kind text, did text) returns boolean language sql stable security definer set search_path = public as $$
+  select is_member(t) and case kind
+    when 'event' then can_manage(t)
+    when 'list' then can_manage(t) or split_part(did, '.', 1) = auth.uid()::text
+    when 'rate' then can_manage(t) or split_part(did, '|', 3) = auth.uid()::text
+    else true end
+$$;
 drop policy if exists d_ins on lb_docs;
-create policy d_ins on lb_docs for insert to authenticated with check (is_member(team_id));
+create policy d_ins on lb_docs for insert to authenticated with check (doc_ok(team_id, k, id));
 drop policy if exists d_upd on lb_docs;
-create policy d_upd on lb_docs for update to authenticated using (is_member(team_id)) with check (is_member(team_id));
+create policy d_upd on lb_docs for update to authenticated using (doc_ok(team_id, k, id)) with check (doc_ok(team_id, k, id));
 
 -- Droits : uniquement les comptes connectés (les règles ci-dessus filtrent ensuite ligne par ligne)
 revoke all on profiles, teams, team_members, lb_docs from anon;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on profiles, teams, team_members, lb_docs to authenticated;
-grant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid) to authenticated;
+grant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid), doc_ok(uuid, text, text) to authenticated;
 
 -- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.
 insert into profiles (id, email, pseudo, approved, is_admin)
