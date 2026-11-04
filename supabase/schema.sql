@@ -147,6 +147,19 @@ grant usage on schema public to authenticated;
 grant select, insert, update, delete on profiles, teams, team_members, lb_docs to authenticated;
 grant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid), doc_ok(uuid, text, text) to authenticated;
 
+-- Changer son pseudo (le compte administrateur garde « Iscalis »).
+create or replace function set_pseudo(new_pseudo text) returns void language plpgsql security definer set search_path = public as $$
+declare p text := left(trim(coalesce(new_pseudo, '')), 30);
+begin
+  if auth.uid() is null then raise exception 'Non connecté'; end if;
+  if is_admin() then raise exception 'Le pseudo de l''administrateur ne peut pas être modifié'; end if;
+  if length(p) < 2 then raise exception 'Pseudo trop court (2 caractères minimum)'; end if;
+  if lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé'; end if;
+  if exists (select 1 from profiles where lower(pseudo) = lower(p) and id <> auth.uid()) then raise exception 'Ce pseudo est déjà pris'; end if;
+  update profiles set pseudo = p where id = auth.uid();
+end $$;
+grant execute on function set_pseudo(text) to authenticated;
+
 -- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.
 insert into profiles (id, email, pseudo, approved, is_admin)
 select u.id, u.email,
