@@ -31,3 +31,10 @@ The daily history is what gives the trend.
 ## Please be polite to the data source
 One run per day, about 130 requests, with a pause between them and robots.txt respected.
 Check MiniHeadQuarters' terms of use before relying on this, or ask them for permission.
+
+## Comptes, équipes et partage (Supabase)
+
+1. Créer un projet gratuit sur supabase.com, exécuter `supabase/schema.sql` dans *SQL Editor*.
+2. *Authentication → URL Configuration* : « Site URL » = l'adresse de l'app. Garder « Confirm email » activé.
+3. Mettre l'URL du projet et la clé *anon public* dans `config.js` (ou les coller dans l'onglet Équipe).
+4. Le compte `matthieu.seynaeve.pro@hotmail.com` devient automatiquement l'administrateur **Iscalis** (après confirmation de l'e-mail). Les autres comptes doivent être validés par lui, puis chaque joueur demande à rejoindre une équipe, validé par un responsable ou capitaine.

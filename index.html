@@ -81,6 +81,7 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 <header><h1>⚔ Leman Brut</h1><div class="mut" id="upd">Chargement…</div><div class="mut" id="sy"></div></header>
 <div id="nav"><div class="bar" id="tabs"></div><div class="bar" id="win"></div></div>
 <main id="v"></main>
+<script src="config.js"></script>
 <script>
 "use strict";
 var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
@@ -306,6 +307,7 @@ function formHtml(){
 }
 function placeholder(){return'<div class="card mut">Choisis une liste dans la colonne de gauche, ou crée-en une avec « + Nouvelle ».</div>'}
 function va(){
+  var g=gate();if(g)return g;
   var main=lform?formHtml():lsel?detailHtml():placeholder();
   return'<div class="split'+(lform||lsel?" show-main":"")+'">'+sideHtml()+'<div class="mainpane">'+main+"</div></div>";
 }
@@ -360,6 +362,7 @@ var priEv=ld("priev",""),priForm=false;
 function rc(v){var t=(v-1)/4;return"hsl("+Math.round(115-t*115)+","+Math.round(55+t*15)+"%,"+Math.round(68-t*36)+"%)"}
 function rtx(v){return v>=4?"#fff":"#111"}
 function vp(){
+  var g=gate();if(g)return g;
   var evs=sortedEvents(),ev=evById(priEv);
   if(!ev&&evs.length&&!priForm){ev=evs.filter(function(e){return e.date>=today()}).pop()||evs[0];priEv=ev.id}
   var h='<div class="card fm"><div class="army"><b>Événement</b><button class="btn" onclick="pnew()">+ Nouveau</button></div>';
@@ -405,10 +408,86 @@ function rn(kind,i){
   render();
 }
 
-/* ---------- synchro Supabase ---------- */
-var SB=ld("sb",null),sbmap=ld("sbmap",{}),sbstate=SB?"…":"local",sbT=null,sbBusy=false;
-(function(){var m=location.hash.match(/sb=([^&]+)/);if(!m)return;try{var o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k&&o.t){SB={url:o.u.replace(/\/+$/,""),key:o.k,team:o.t};sv("sb",SB);sbmap={};sv("sbmap",sbmap);sbstate="…"}}catch(e){}history.replaceState(null,"",location.pathname+location.search)})();
-function sbH(x){var o={apikey:SB.key,Authorization:"Bearer "+SB.key};for(var k in x)o[k]=x[k];return o}
+/* ---------- comptes, équipes & synchro (Supabase) ---------- */
+var SCHEMA_SQL="-- Leman Brut : comptes, équipes et données partagées.\n-- À exécuter une fois dans Supabase > SQL Editor > Run.\n\ncreate table if not exists profiles (\n  id uuid primary key references auth.users on delete cascade,\n  email text not null,\n  pseudo text not null,\n  approved boolean not null default false,\n  is_admin boolean not null default false,\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists profiles_pseudo_uq on profiles (lower(pseudo));\n\ncreate table if not exists teams (\n  id uuid primary key default gen_random_uuid(),\n  name text not null,\n  created_by uuid not null references profiles (id),\n  created_at timestamptz not null default now()\n);\ncreate unique index if not exists teams_name_uq on teams (lower(name));\n\ncreate table if not exists team_members (\n  team_id uuid not null references teams (id) on delete cascade,\n  user_id uuid not null references profiles (id) on delete cascade,\n  role text not null default 'member' check (role in ('owner', 'captain', 'member')),\n  status text not null default 'pending' check (status in ('pending', 'active')),\n  primary key (team_id, user_id)\n);\n\ncreate table if not exists lb_docs (\n  team_id uuid not null references teams (id) on delete cascade,\n  k text not null,\n  id text not null,\n  body jsonb,\n  u bigint not null,\n  del boolean not null default false,\n  primary key (team_id, k, id)\n);\n\n-- Fonctions d'aide (security definer : évitent les boucles de règles)\ncreate or replace function is_admin() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and is_admin and approved)\n$$;\ncreate or replace function is_approved() returns boolean language sql stable security definer set search_path = public as $$\n  select exists (select 1 from profiles where id = auth.uid() and approved)\n$$;\ncreate or replace function is_member(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active')\n$$;\ncreate or replace function can_manage(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role in ('owner', 'captain'))\n$$;\ncreate or replace function is_owner(t uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select is_admin() or exists (select 1 from team_members where team_id = t and user_id = auth.uid() and status = 'active' and role = 'owner')\n$$;\ncreate or replace function shares_team(u uuid) returns boolean language sql stable security definer set search_path = public as $$\n  select exists (\n    select 1 from team_members a join team_members b on a.team_id = b.team_id\n    where a.user_id = auth.uid() and a.status = 'active' and b.user_id = u)\n$$;\n\n-- Création automatique du profil. Le compte matthieu.seynaeve.pro@hotmail.com devient\n-- l'administrateur « Iscalis » (il doit confirmer cette adresse par e-mail pour se connecter).\ncreate or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$\ndeclare p text; adm boolean;\nbegin\n  adm := lower(new.email) = 'matthieu.seynaeve.pro@hotmail.com';\n  p := coalesce(nullif(trim(new.raw_user_meta_data ->> 'pseudo'), ''), split_part(new.email, '@', 1));\n  if adm then p := 'Iscalis';\n  elsif lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé';\n  end if;\n  insert into profiles (id, email, pseudo, approved, is_admin) values (new.id, new.email, left(p, 30), adm, adm);\n  return new;\nend $$;\ndrop trigger if exists on_auth_user_created on auth.users;\ncreate trigger on_auth_user_created after insert on auth.users for each row execute function handle_new_user();\n\n-- Le créateur d'une équipe en devient automatiquement le responsable.\ncreate or replace function handle_new_team() returns trigger language plpgsql security definer set search_path = public as $$\nbegin\n  insert into team_members (team_id, user_id, role, status) values (new.id, new.created_by, 'owner', 'active');\n  return new;\nend $$;\ndrop trigger if exists on_team_created on teams;\ncreate trigger on_team_created after insert on teams for each row execute function handle_new_team();\n\n-- Règles d'accès\nalter table profiles enable row level security;\nalter table teams enable row level security;\nalter table team_members enable row level security;\nalter table lb_docs enable row level security;\n\ndrop policy if exists p_sel on profiles;\ncreate policy p_sel on profiles for select to authenticated using (id = auth.uid() or is_admin() or shares_team(id));\ndrop policy if exists p_upd on profiles;\ncreate policy p_upd on profiles for update to authenticated using (is_admin()) with check (is_admin());\n\ndrop policy if exists t_sel on teams;\ncreate policy t_sel on teams for select to authenticated using (is_approved());\ndrop policy if exists t_ins on teams;\ncreate policy t_ins on teams for insert to authenticated with check (is_approved() and created_by = auth.uid());\ndrop policy if exists t_upd on teams;\ncreate policy t_upd on teams for update to authenticated using (can_manage(id)) with check (can_manage(id));\ndrop policy if exists t_del on teams;\ncreate policy t_del on teams for delete to authenticated using (is_owner(id));\n\ndrop policy if exists m_sel on team_members;\ncreate policy m_sel on team_members for select to authenticated using (user_id = auth.uid() or is_member(team_id));\ndrop policy if exists m_ins on team_members;\ncreate policy m_ins on team_members for insert to authenticated\n  with check (is_admin() or (user_id = auth.uid() and role = 'member' and status = 'pending' and is_approved()));\ndrop policy if exists m_upd on team_members;\ncreate policy m_upd on team_members for update to authenticated\n  using (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)))\n  with check (can_manage(team_id) and (role <> 'owner' or is_owner(team_id)));\ndrop policy if exists m_del on team_members;\ncreate policy m_del on team_members for delete to authenticated\n  using (is_admin() or (user_id = auth.uid() and role <> 'owner') or (can_manage(team_id) and role <> 'owner'));\n\ndrop policy if exists d_sel on lb_docs;\ncreate policy d_sel on lb_docs for select to authenticated using (is_member(team_id));\ndrop policy if exists d_ins on lb_docs;\ncreate policy d_ins on lb_docs for insert to authenticated with check (is_member(team_id));\ndrop policy if exists d_upd on lb_docs;\ncreate policy d_upd on lb_docs for update to authenticated using (is_member(team_id)) with check (is_member(team_id));\n\n-- Rien n'est accessible sans connexion\nrevoke all on profiles, teams, team_members, lb_docs from anon;\n";
+var CFG=ld("sbcfg",null)||(window.LB_CONFIG&&window.LB_CONFIG.url?{url:window.LB_CONFIG.url,key:window.LB_CONFIG.key}:null);
+var AS=ld("auth",null),AU=ld("au",{profile:null,mem:[],teams:[]}),CUR=ld("curteam",""),amode="login",pwReset=false,aerr="",ainfo="",abusy=false;
+var sbmap=ld("sbmap",{}),sbstate=CFG?"…":"local",sbT=null,sbBusy=false,MEMB=[],ACCS=[];
+var TK=["data","notes","players","players_u","sbsince","sbmap","priev"];
+(function(){
+  var m=location.hash.match(/sb=([^&]+)/);
+  if(m){try{var o=JSON.parse(atob(decodeURIComponent(m[1])));if(o.u&&o.k){CFG={url:o.u.replace(/\/+$/,""),key:o.k};sv("sbcfg",CFG)}}catch(e){}}
+  var q={};location.hash.replace(/^#/,"").split("&").forEach(function(x){var i=x.indexOf("=");if(i>0)q[x.slice(0,i)]=decodeURIComponent(x.slice(i+1))});
+  if(q.access_token&&q.refresh_token){
+    AS={at:q.access_token,rt:q.refresh_token,exp:Math.floor(Date.now()/1000)+(parseInt(q.expires_in,10)||3600)};
+    try{var pl=JSON.parse(atob(q.access_token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));AS.uid=pl.sub;AS.email=pl.email}catch(e){}
+    sv("auth",AS);if(q.type==="recovery")pwReset=true;tab="s";
+  }
+  if(m||q.access_token||q.error_description)history.replaceState(null,"",location.pathname+location.search);
+  if(q.error_description)aerr=q.error_description.replace(/\+/g," ");
+})();
+function parseErr(t,st){try{var j=JSON.parse(t);return j.msg||j.error_description||j.message||j.error||("HTTP "+st)}catch(e){return "HTTP "+st}}
+function setSession(j){
+  AS={at:j.access_token,rt:j.refresh_token,exp:j.expires_at||Math.floor(Date.now()/1000)+(j.expires_in||3600),uid:(j.user&&j.user.id)||(AS&&AS.uid),email:(j.user&&j.user.email)||(AS&&AS.email)};
+  sv("auth",AS);return AS.at;
+}
+function tok(){
+  if(!AS)return Promise.reject(new Error("Non connecté"));
+  if(AS.exp-60>Date.now()/1000)return Promise.resolve(AS.at);
+  return fetch(CFG.url+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:{apikey:CFG.key,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:AS.rt})})
+  .then(function(r){if(r.status>=400&&r.status<500){AS=null;try{localStorage.removeItem("lb_auth")}catch(e){}throw new Error("Session expirée, reconnecte-toi")}if(!r.ok)throw new Error("HTTP "+r.status);return r.json()}).then(setSession);
+}
+function api(path,o){
+  o=o||{};
+  return tok().then(function(t){
+    var hd={apikey:CFG.key,Authorization:"Bearer "+t,"Content-Type":"application/json"};if(o.prefer)hd.Prefer=o.prefer;
+    return fetch(CFG.url+path,{method:o.method||"GET",headers:hd,body:o.body!==undefined?JSON.stringify(o.body):undefined});
+  }).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error(parseErr(t,r.status))});
+    return r.status===204?null:r.text().then(function(t){return t?JSON.parse(t):null});
+  });
+}
+function authCall(path,body,method){
+  return fetch(CFG.url+"/auth/v1/"+path,{method:method||"POST",headers:{apikey:CFG.key,"Content-Type":"application/json"},body:JSON.stringify(body)})
+  .then(function(r){return r.text().then(function(t){if(!r.ok)throw new Error(parseErr(t,r.status));return t?JSON.parse(t):{}})});
+}
+function activeIn(t){return AU.mem.some(function(m){return m.team_id===t&&m.status==="active"})}
+function myRole(t){var m=AU.mem.filter(function(x){return x.team_id===t&&x.status==="active"})[0];return AU.profile&&AU.profile.is_admin?"admin":m?m.role:""}
+function ready(){return !!(AS&&AU.profile&&AU.profile.approved&&CUR&&(AU.profile.is_admin||activeIn(CUR)))}
+function curName(){var t=AU.teams.filter(function(x){return x.id===CUR})[0];return t?t.name:""}
+function gate(){
+  if(!CFG||ready())return"";
+  var m=!AS?"Connecte-toi et rejoins une équipe pour utiliser cet écran (onglet Équipe).":!AU.profile?"Chargement du compte…":!AU.profile.approved?"Ton compte attend la validation de l’administrateur (onglet Équipe).":"Choisis ou rejoins une équipe dans l’onglet Équipe.";
+  return'<div class="card"><div class="mut">'+m+'</div><button class="btn" onclick="go(\'s\')">Aller à l’onglet Équipe</button></div>';
+}
+function useTeam(id){
+  var cur=ld("curteam","");
+  if(cur===id)return false;
+  if(cur){
+    TK.forEach(function(k){var v=localStorage.getItem("lb_"+k);if(v!==null)localStorage.setItem("lb_"+cur+"_"+k,v)});
+    TK.forEach(function(k){var v=localStorage.getItem("lb_"+id+"_"+k);if(v===null)localStorage.removeItem("lb_"+k);else localStorage.setItem("lb_"+k,v)});
+  }
+  sv("curteam",id);CUR=id;
+  if(cur){location.reload();return true}
+  return false;
+}
+function acctLoad(){
+  if(!CFG||!AS)return Promise.resolve();
+  return Promise.all([
+    api("/rest/v1/profiles?id=eq."+AS.uid+"&select=id,email,pseudo,approved,is_admin"),
+    api("/rest/v1/team_members?user_id=eq."+AS.uid+"&select=team_id,role,status"),
+    api("/rest/v1/teams?select=id,name&order=name.asc")
+  ]).then(function(a){
+    AU={profile:a[0][0]||null,mem:a[1]||[],teams:a[2]||[]};sv("au",AU);
+    if(AU.profile&&AU.profile.approved){
+      var ok=AU.teams.filter(function(t){return AU.profile.is_admin||activeIn(t.id)});
+      if(ok.length&&!ok.some(function(t){return t.id===CUR}))useTeam(ok[0].id);
+    }
+    return Promise.all([AU.profile&&AU.profile.is_admin?api("/rest/v1/profiles?select=id,email,pseudo,approved,is_admin&order=created_at.desc").then(function(r){ACCS=r||[]}):0,
+      CUR&&ready()?api("/rest/v1/team_members?team_id=eq."+CUR+"&select=user_id,role,status,profiles(pseudo,email)").then(function(r){MEMB=r||[]}):0]);
+  }).catch(function(e){aerr=String(e.message||e)});
+}
+function sbH(x){var o={apikey:CFG.key,Authorization:"Bearer "+AS.at,"Content-Type":"application/json"};for(var k in x)o[k]=x[k];return o}
 function collect(){
   var o={};
   LB.events.forEach(function(e){o["event|"+e.id]={u:e.u||0,b:e}});
@@ -432,50 +511,131 @@ function applyRemote(r){
   else if(r.k==="players"){players=r.body;sv("players",players);sv("players_u",r.u)}
   sbmap[key]=r.u;return true;
 }
-function sbSet(s){sbstate=s;var el=document.getElementById("sy");if(el)el.textContent=s==="local"?"":s==="ok"?"☁ synchronisé":s==="err"?"☁ hors ligne":"☁ …"}
-function syncSoon(){if(!SB)return;clearTimeout(sbT);sbT=setTimeout(syncNow,1500)}
+function sbSet(s){
+  sbstate=s;var el=document.getElementById("sy");if(!el)return;
+  var who=AU.profile&&AS?AU.profile.pseudo+" · ":"";
+  el.textContent=!CFG?"":!AS?"🔒 non connecté":!ready()?"🔒 "+who+"en attente":"☁ "+who+(s==="ok"?"synchronisé":s==="err"?"hors ligne":"…");
+}
+function syncSoon(){if(!ready())return;clearTimeout(sbT);sbT=setTimeout(syncNow,1500)}
 function syncNow(){
-  if(!SB||sbBusy)return Promise.resolve();
+  if(!ready()||sbBusy)return Promise.resolve();
   sbBusy=true;sbSet("…");
-  var since=Math.max(0,ld("sbsince",0)-600000),base=SB.url+"/rest/v1/lb_docs";
-  return fetch(base+"?team=eq."+encodeURIComponent(SB.team)+"&u=gt."+since+"&select=k,id,body,u,del&order=u.asc",{headers:sbH({})})
-  .then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json()})
+  var team=CUR,since=Math.max(0,ld("sbsince",0)-600000),base="/rest/v1/lb_docs";
+  return api(base+"?team_id=eq."+team+"&u=gt."+since+"&select=k,id,body,u,del&order=u.asc&limit=5000")
   .then(function(rows){
-    var changed=false,mx=ld("sbsince",0);
+    rows=rows||[];var changed=false,mx=ld("sbsince",0);
     rows.forEach(function(r){if(applyRemote(r))changed=true;if(r.u>mx)mx=r.u});
-    sv("sbsince",mx);
-    if(changed){sv("data",LB)}
+    sv("sbsince",mx);if(changed)sv("data",LB);
     var c=collect(),out=[];
-    Object.keys(c).forEach(function(key){if((sbmap[key]||0)!==c[key].u){var i=key.indexOf("|");out.push({team:SB.team,k:key.slice(0,i),id:key.slice(i+1),body:c[key].del?null:c[key].b,u:c[key].u,del:!!c[key].del})}});
+    Object.keys(c).forEach(function(key){if((sbmap[key]||0)!==c[key].u){var i=key.indexOf("|");out.push({team_id:team,k:key.slice(0,i),id:key.slice(i+1),body:c[key].del?null:c[key].b,u:c[key].u,del:!!c[key].del})}});
     var chain=Promise.resolve();
-    for(var i=0;i<out.length;i+=15)(function(ch){chain=chain.then(function(){return fetch(base+"?on_conflict=team,k,id",{method:"POST",headers:sbH({"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"}),body:JSON.stringify(ch)}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);ch.forEach(function(x){sbmap[x.k+"|"+x.id]=x.u})})})})(out.slice(i,i+15));
+    for(var i=0;i<out.length;i+=15)(function(ch){chain=chain.then(function(){return api(base+"?on_conflict=team_id,k,id",{method:"POST",prefer:"resolution=merge-duplicates,return=minimal",body:ch}).then(function(){ch.forEach(function(x){sbmap[x.k+"|"+x.id]=x.u})})})})(out.slice(i,i+15));
     return chain.then(function(){sv("sbmap",sbmap);return changed});
   })
   .then(function(changed){sbBusy=false;sbSet("ok");var a=document.activeElement;if(changed&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))render()})
   .catch(function(e){sbBusy=false;sbSet("err");window.lastSyncError=String(e.message||e)});
 }
+function fld(id,ph,type){return'<input id="'+id+'" placeholder="'+ph+'"'+(type?' type="'+type+'"':"")+' autocomplete="'+(type==="password"?"current-password":"off")+'">'}
 function vs(){
-  var sql="create table lb_docs(\n  team text not null, k text not null, id text not null,\n  body jsonb, u bigint not null, del boolean not null default false,\n  primary key (team,k,id));\nalter table lb_docs enable row level security;\ncreate policy r on lb_docs for select to anon using (true);\ncreate policy i on lb_docs for insert to anon with check (true);\ncreate policy w on lb_docs for update to anon using (true) with check (true);";
-  var h='<div class="card fm"><b>Synchronisation de l’équipe (Supabase)</b>';
-  if(SB){
-    h+='<div class="mut" style="margin-top:6px">Connecté à <b>'+esc(SB.url)+'</b> · équipe <b>'+esc(SB.team)+'</b> · état : '+(sbstate==="ok"?"synchronisé":sbstate==="err"?"hors ligne ("+esc(window.lastSyncError||"")+")":"en cours…")+'</div><div class="warn">Listes, événements, notes de priorité, notes de matchups et noms de joueurs sont partagés. Envoie le lien d’invitation aux 4 autres joueurs : il suffit de l’ouvrir une fois sur leur téléphone.</div><button class="btn" onclick="sinvite()">Copier le lien d’invitation</button><button class="btn g" onclick="ssync()">Synchroniser maintenant</button><button class="btn g" onclick="soff()">Déconnecter cet appareil</button>';
-  }else{
-    h+='<div class="warn">Pour partager entre joueurs : crée un projet gratuit sur supabase.com, ouvre « SQL Editor », exécute le script ci-dessous, puis colle ici l’URL du projet et la clé « anon public » (Project Settings → API).</div><div class="pre">'+esc(sql)+'</div><button class="btn g" onclick="scopysql()">Copier le script SQL</button><input id="su" placeholder="URL du projet (https://xxxx.supabase.co)"><input id="sk" placeholder="Clé anon public"><input id="st" placeholder="Code d’équipe (ex. leman-brut)"><button class="btn" onclick="sconnect()">Connecter</button>';
+  var h="";
+  if(!CFG){
+    return'<div class="card fm"><b>Mise en place (une seule fois, par le responsable)</b><div class="warn">1) Crée un projet gratuit sur supabase.com. 2) Dans « SQL Editor », exécute le script ci-dessous. 3) Dans Authentication → URL Configuration, mets comme « Site URL » l’adresse de cette application. Laisse « Confirm email » activé (Authentication → Providers → Email). 4) Dans Project Settings → API, copie l’URL du projet et la clé « anon public » et colle-les ici.</div><div class="pre" id="sqlbox">'+esc(SCHEMA_SQL)+'</div><button class="btn g" onclick="scopysql()">Copier le script SQL</button>'+fld("su","URL du projet (https://xxxx.supabase.co)")+fld("sk","Clé anon public")+'<button class="btn" onclick="ssetup()">Enregistrer</button></div>';
   }
-  return h+"</div>";
+  if(aerr)h+='<div class="card err">'+esc(aerr)+"</div>";
+  if(ainfo)h+='<div class="card"><div class="mut">'+esc(ainfo)+"</div></div>";
+  if(!AS){
+    var su=amode==="signup";
+    h+='<div class="card fm"><div class="chips"><button class="chip'+(su?"":" on")+'" onclick="amd(\'login\')">Connexion</button><button class="chip'+(su?" on":"")+'" onclick="amd(\'signup\')">Créer un compte</button></div>'+
+    '<input id="ae" type="email" placeholder="Adresse e-mail" autocomplete="email">'+(su?fld("ap","Pseudo"):"")+'<input id="aw" type="password" placeholder="Mot de passe (8 caractères minimum)" autocomplete="'+(su?"new-password":"current-password")+'">'+
+    '<button class="btn" onclick="'+(su?"asign()":"alog()")+'"'+(abusy?" disabled":"")+">"+(su?"Créer mon compte":"Se connecter")+'</button>'+(su?'<div class="warn">Tu recevras un e-mail pour confirmer ton adresse. Ensuite, l’administrateur doit valider ton compte avant que tu puisses rejoindre une équipe.</div>':'<button class="btn g" onclick="arec()">Mot de passe oublié</button>')+"</div>";
+    return h;
+  }
+  if(pwReset){
+    return h+'<div class="card fm"><b>Nouveau mot de passe</b><input id="aw" type="password" placeholder="Nouveau mot de passe (8 caractères minimum)" autocomplete="new-password"><button class="btn" onclick="apw()">Enregistrer</button></div>';
+  }
+  var P=AU.profile;
+  h+='<div class="card fm"><div class="army"><div><b>'+esc(P?P.pseudo:"…")+'</b>'+(P&&P.is_admin?' <span class="mut">· administrateur</span>':"")+'<div class="mut">'+esc((P&&P.email)||AS.email||"")+'</div></div><div><button class="btn g" onclick="aref()">↻</button><button class="btn g" onclick="aout()">Déconnexion</button></div></div></div>';
+  if(!P)return h+'<div class="card"><div class="mut">Chargement du compte…</div></div>';
+  if(!P.approved)return h+'<div class="card"><b>Compte en attente</b><div class="mut" style="margin-top:6px">L’administrateur doit valider ton compte. Reviens plus tard et touche ↻.</div></div>';
+  // équipes
+  var mine=AU.teams.filter(function(t){return P.is_admin||activeIn(t.id)});
+  h+='<div class="card fm"><b>Mon équipe</b>';
+  if(mine.length){
+    h+='<select onchange="ateam(this.value)">'+mine.map(function(t){return'<option value="'+t.id+'"'+(t.id===CUR?" selected":"")+">"+esc(t.name)+"</option>"}).join("")+"</select>";
+    if(CUR&&ready())h+='<div class="mut" style="margin-top:6px">Tes listes, événements et notes sont partagés avec les membres de cette équipe, automatiquement. Ton rôle : '+esc(myRole(CUR))+".</div>";
+  }else h+='<div class="mut" style="margin-top:6px">Tu n’as pas encore d’équipe : crées-en une ou demande à en rejoindre une.</div>';
+  h+="</div>";
+  var pend=AU.mem.filter(function(m){return m.status==="pending"});
+  var others=AU.teams.filter(function(t){return !P.is_admin&&!AU.mem.some(function(m){return m.team_id===t.id})});
+  h+='<div class="card fm"><b>Créer une équipe</b>'+fld("tn","Nom de l’équipe")+'<button class="btn" onclick="atc()">Créer</button></div>';
+  if(others.length||pend.length){
+    h+='<div class="card"><b>Rejoindre une équipe</b>'+others.map(function(t){return'<div class="army" style="margin-top:6px"><span>'+esc(t.name)+'</span><button class="btn g sm" onclick="ajoin(\''+t.id+'\')">Demander</button></div>'}).join("")+
+    pend.map(function(m){var t=AU.teams.filter(function(x){return x.id===m.team_id})[0];return'<div class="army mut" style="margin-top:6px"><span>'+esc(t?t.name:"?")+'</span><span>demande en attente…</span></div>'}).join("")+"</div>";
+  }
+  if(CUR&&ready()){
+    var canM=myRole(CUR)==="owner"||myRole(CUR)==="captain"||myRole(CUR)==="admin";
+    var pn=MEMB.filter(function(m){return m.status==="pending"}),ac=MEMB.filter(function(m){return m.status==="active"});
+    if(canM&&pn.length)h+='<div class="card"><b>Demandes à valider</b>'+pn.map(function(m){return'<div class="army" style="margin-top:6px"><span>'+esc(m.profiles?m.profiles.pseudo:"?")+' <span class="mut">'+esc(m.profiles?m.profiles.email:"")+'</span></span><span><button class="btn sm" onclick="amok(\''+m.user_id+'\')">Accepter</button><button class="btn g sm" onclick="amdel(\''+m.user_id+'\')">Refuser</button></span></div>'}).join("")+"</div>";
+    h+='<div class="card"><b>Membres</b>'+ac.map(function(m){
+      var rl=canM&&m.role!=="owner"?'<select onchange="amrole(\''+m.user_id+'\',this.value)" style="width:auto;margin:0"><option value="member"'+(m.role==="member"?" selected":"")+'>membre</option><option value="captain"'+(m.role==="captain"?" selected":"")+'>capitaine</option></select><button class="btn g sm" onclick="amdel(\''+m.user_id+'\')">Retirer</button>':'<span class="mut">'+(m.role==="owner"?"responsable":m.role==="captain"?"capitaine":"membre")+"</span>";
+      return'<div class="army" style="margin-top:6px"><span>'+esc(m.profiles?m.profiles.pseudo:"?")+"</span><span>"+rl+"</span></div>";
+    }).join("")+"</div>";
+  }
+  if(P.is_admin){
+    h+='<div class="card"><b>Administration · comptes</b><div class="warn">Valide les nouveaux comptes (après qu’ils ont confirmé leur e-mail).</div>'+ACCS.map(function(a){
+      return'<div class="army" style="margin-top:6px"><span>'+esc(a.pseudo)+' <span class="mut">'+esc(a.email)+'</span></span><span>'+(a.is_admin?'<span class="mut">admin</span>':a.approved?'<button class="btn g sm" onclick="aapp(\''+a.id+'\',false)">Retirer</button>':'<button class="btn sm" onclick="aapp(\''+a.id+'\',true)">Valider</button>')+"</span></div>";
+    }).join("")+"</div>";
+  }
+  return h;
 }
-function scopysql(){try{navigator.clipboard.writeText(document.querySelector(".pre").textContent)}catch(e){}}
-function sconnect(){
-  var u=document.getElementById("su").value.trim().replace(/\/+$/,""),k=document.getElementById("sk").value.trim(),t=document.getElementById("st").value.trim();
-  if(!/^https:\/\/.+/.test(u)||!k||!t){alert("Renseigne l’URL (https://…), la clé et un code d’équipe.");return}
-  SB={url:u,key:k,team:t};sv("sb",SB);sbmap={};sv("sbmap",{});sv("sbsince",0);render();syncNow().then(render);
+function scopysql(){try{navigator.clipboard.writeText(SCHEMA_SQL)}catch(e){}}
+function ssetup(){
+  var u=document.getElementById("su").value.trim().replace(/\/+$/,""),k=document.getElementById("sk").value.trim();
+  if(!/^https:\/\/.+/.test(u)||!k){alert("Renseigne l’URL (https://…) et la clé.");return}
+  CFG={url:u,key:k};sv("sbcfg",CFG);render();
 }
-function sinvite(){
-  var l=location.origin+location.pathname+"#sb="+encodeURIComponent(btoa(JSON.stringify({u:SB.url,k:SB.key,t:SB.team})));
-  try{navigator.clipboard.writeText(l);alert("Lien copié.")}catch(e){prompt("Copie ce lien",l)}
+function amd(m){amode=m;aerr="";ainfo="";render()}
+function ab(fn){abusy=true;aerr="";ainfo="";render();return fn().catch(function(e){aerr=String(e.message||e)}).then(function(){abusy=false;render()})}
+function alog(){
+  var e=document.getElementById("ae").value.trim(),w=document.getElementById("aw").value;
+  if(!e||!w){aerr="Renseigne l’e-mail et le mot de passe.";render();return}
+  ab(function(){return authCall("token?grant_type=password",{email:e,password:w}).then(function(j){setSession(j);return acctLoad()}).then(function(){syncNow()})});
 }
-function ssync(){syncNow().then(render)}
-function soff(){if(!confirm("Déconnecter cet appareil ? Les données restent en local."))return;SB=null;try{localStorage.removeItem("lb_sb")}catch(e){}sbSet("local");render()}
+function asign(){
+  var e=document.getElementById("ae").value.trim(),p=document.getElementById("ap").value.trim(),w=document.getElementById("aw").value;
+  if(!e||!p||w.length<8){aerr="E-mail, pseudo et mot de passe d’au moins 8 caractères requis.";render();return}
+  ab(function(){return authCall("signup?redirect_to="+encodeURIComponent(location.origin+location.pathname),{email:e,password:w,data:{pseudo:p}}).then(function(j){
+    if(j.access_token){setSession(j);return acctLoad()}
+    amode="login";ainfo="Compte créé. Ouvre l’e-mail de confirmation que tu viens de recevoir, puis connecte-toi.";
+  })});
+}
+function arec(){
+  var e=document.getElementById("ae").value.trim();
+  if(!e){aerr="Renseigne ton e-mail.";render();return}
+  ab(function(){return authCall("recover?redirect_to="+encodeURIComponent(location.origin+location.pathname),{email:e}).then(function(){ainfo="Si ce compte existe, un e-mail de réinitialisation vient d’être envoyé."})});
+}
+function apw(){
+  var w=document.getElementById("aw").value;
+  if(w.length<8){aerr="8 caractères minimum.";render();return}
+  ab(function(){return tok().then(function(t){return fetch(CFG.url+"/auth/v1/user",{method:"PUT",headers:{apikey:CFG.key,Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({password:w})})}).then(function(r){if(!r.ok)return r.text().then(function(t){throw new Error(parseErr(t,r.status))});pwReset=false;ainfo="Mot de passe modifié.";return acctLoad()})});
+}
+function aout(){
+  var t=AS&&AS.at;
+  if(t&&CFG)fetch(CFG.url+"/auth/v1/logout",{method:"POST",headers:{apikey:CFG.key,Authorization:"Bearer "+t}}).catch(function(){});
+  AS=null;try{localStorage.removeItem("lb_auth")}catch(e){}
+  AU={profile:null,mem:[],teams:[]};sv("au",AU);MEMB=[];ACCS=[];aerr="";ainfo="";sbSet("local");render();
+}
+function aref(){ab(function(){return acctLoad().then(function(){return syncNow()})})}
+function ateam(id){if(!useTeam(id)){CUR=id}ab(function(){return acctLoad().then(syncNow)})}
+function atc(){
+  var n=document.getElementById("tn").value.trim();if(!n)return;
+  ab(function(){return api("/rest/v1/teams",{method:"POST",prefer:"return=representation",body:{name:n,created_by:AS.uid}}).then(function(r){return acctLoad().then(function(){useTeam(r[0].id);return acctLoad()}).then(syncNow)})});
+}
+function ajoin(t){ab(function(){return api("/rest/v1/team_members",{method:"POST",prefer:"return=minimal",body:{team_id:t,user_id:AS.uid,role:"member",status:"pending"}}).then(function(){ainfo="Demande envoyée : un responsable ou capitaine de l’équipe doit la valider.";return acctLoad()})})}
+function amok(u){ab(function(){return api("/rest/v1/team_members?team_id=eq."+CUR+"&user_id=eq."+u,{method:"PATCH",prefer:"return=minimal",body:{status:"active"}}).then(acctLoad)})}
+function amdel(u){if(!confirm("Confirmer ?"))return;ab(function(){return api("/rest/v1/team_members?team_id=eq."+CUR+"&user_id=eq."+u,{method:"DELETE",prefer:"return=minimal"}).then(acctLoad)})}
+function amrole(u,r){ab(function(){return api("/rest/v1/team_members?team_id=eq."+CUR+"&user_id=eq."+u,{method:"PATCH",prefer:"return=minimal",body:{role:r}}).then(acctLoad)})}
+function aapp(id,v){ab(function(){return api("/rest/v1/profiles?id=eq."+id,{method:"PATCH",prefer:"return=minimal",body:{approved:v}}).then(acctLoad)})}
 document.addEventListener("visibilitychange",function(){if(!document.hidden)syncNow()});
 setInterval(function(){if(!document.hidden)syncNow()},60000);
 
@@ -485,7 +645,7 @@ function hideSplash(){
   setTimeout(function(){el.classList.add("out");setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},700)},Math.max(0,1400-(Date.now()-t0)));
 }
 render();
-load().then(function(){render();hideSplash();syncNow()});
+load().then(function(){render();hideSplash();if(AS&&CFG)acctLoad().then(function(){render();syncNow()})});
 setTimeout(hideSplash,7000);
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
