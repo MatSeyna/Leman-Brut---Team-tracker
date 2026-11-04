@@ -1,6 +1,14 @@
 -- Leman Brut : comptes, équipes et données partagées.
 -- À exécuter une fois dans Supabase > SQL Editor > Run.
 
+-- Nettoyage de l'ancienne table de test (première version, sans comptes), si elle existe.
+do $$ begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team')
+     and not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'lb_docs' and column_name = 'team_id') then
+    drop table lb_docs;
+  end if;
+end $$;
+
 create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade,
   email text not null,
