@@ -1,8 +1,8 @@
 // Network first, falls back to the last cached copy when offline.
-var C = "leman-brut-v1";
+var C = "leman-brut-v2";
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(C).then(function (c) {
-    return c.addAll(["./", "index.html", "manifest.webmanifest", "icon.svg"]);
+    return c.addAll(["./", "index.html", "manifest.webmanifest", "icon.svg", "hero.jpg"]);
   }));
   self.skipWaiting();
 });
