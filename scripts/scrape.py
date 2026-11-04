@@ -233,42 +233,57 @@ def parse_matchups(soup):
     return []
 
 
-def is_disp(s):
-    return s.strip().lower() in DISPOSITIONS
+def canon_disp(s):
+    """'vs Take and hold' / 'Take and hold' -> 'take and hold'; anything else -> None."""
+    s = re.sub(r"^\s*vs\.?\s+", "", (s or "").strip().lower())
+    return s if s in DISPOSITIONS else None
+
+
+def parse_stat_cell(raw):
+    """'54.6% (46.4 – 62.6) 141 games' -> win rate, interval, games. '-' -> all None."""
+    p = pct_list(raw)
+    ci = re.search(r"\((\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\)", raw or "")
+    g = re.search(r"(\d[\d,]*)\s*games?", raw or "")
+    return {
+        "raw": raw,
+        "win_rate": p[0] if p else None,
+        "low": float(ci.group(1)) if ci else None,
+        "high": float(ci.group(2)) if ci else None,
+        "games": int(g.group(1).replace(",", "")) if g else None,
+    }
 
 
 def parse_dispositions(soup):
-    """Return (matrix, overall). Either may be None if the page lacks it."""
-    matrix = None
-    overall = None
+    """Return (matrix, overall). The site's grid has a 'Global win rate' column
+    and one 'vs <disposition>' column per disposition."""
     for table in soup.find_all("table"):
-        head = header_texts(table)
-        n_disp = sum(1 for h in head if is_disp(h))
-        if n_disp >= 3 and matrix is None:
-            labels = [txt(c) for c in next(c for c, h in rows_of(table) if h)][-n_disp:]
-            rows = []
-            for cells, is_head in rows_of(table):
-                if is_head or not is_disp(txt(cells[0])):
-                    continue
-                data = []
-                for c in cells[1:1 + len(labels)]:
-                    raw = txt(c)
-                    p = pct_list(raw)
-                    rest = re.sub(r"\d+(?:\.\d+)?\s*%", "", raw)
-                    data.append({"raw": raw, "win_rate": p[0] if p else None, "games": num(rest)})
-                rows.append({"name": txt(cells[0]), "cells": data})
-            if rows:
-                matrix = {"labels": labels, "rows": rows}
-        elif n_disp == 0 and any("win rate" in h for h in head) and overall is None:
-            rows = []
-            for cells, is_head in rows_of(table):
-                if not is_head and cells and is_disp(txt(cells[0])) and len(cells) >= 3:
-                    p = pct_list(txt(cells[-1]))
-                    rows.append({"name": txt(cells[0]), "games": num(txt(cells[1]), 0),
-                                 "win_rate": p[0] if p else None})
-            if rows:
-                overall = rows
-    return matrix, overall
+        all_rows = rows_of(table)
+        if not all_rows:
+            continue
+        head_cells = next((c for c, h in all_rows if h), all_rows[0][0])
+        heads = [txt(c) for c in head_cells]
+        cols = [(i, canon_disp(h)) for i, h in enumerate(heads) if canon_disp(h)]
+        if len(cols) < 3:
+            continue
+        gi = next((i for i, h in enumerate(heads) if "global" in h.lower()), None)
+        rows, overall = [], []
+        for cells, _ in all_rows:
+            if cells is head_cells:
+                continue
+            name = canon_disp(txt(cells[0]))
+            if not name:
+                continue
+            label = name.capitalize()
+            data = [parse_stat_cell(txt(cells[i]) if i < len(cells) else "") for i, _ in cols]
+            row = {"name": label, "cells": data}
+            if gi is not None and gi < len(cells):
+                g = parse_stat_cell(txt(cells[gi]))
+                row["global"] = g
+                overall.append({"name": label, "games": g["games"] or 0, "win_rate": g["win_rate"]})
+            rows.append(row)
+        if rows:
+            return {"labels": [n.capitalize() for _, n in cols], "rows": rows}, (overall or None)
+    return None, None
 
 
 # ---------------------------------------------------------------- main

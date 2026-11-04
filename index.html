@@ -169,7 +169,7 @@ var DD=[[0,0,0,0,0],[0,0,0,0,0],[1,1,0,1,0],[0,0,0,0,0],[0,0,0,0,0]];
 function vd(){
   var h="",w=W(),m=w&&w.dispositions;
   if(m){
-    h+='<div class="card"><b>Résultats réels des parties</b><div class="warn">'+esc(w.label)+' · MiniHeadQuarters. Chaque case : % de victoires et nombre de parties. Lecture probable : ligne contre colonne (à confirmer avec la première mise à jour). Les cases à peu de parties sont grisées.</div><div class="scroll"><table><tr><th></th>'+
+    h+='<div class="card"><b>Résultats réels des parties</b><div class="warn">'+esc(w.label)+' · MiniHeadQuarters. Chaque case : % de victoires et nombre de parties. Lecture : la ligne affronte la colonne, case = % de victoires de la ligne (« - » = même disposition). Les cases à peu de parties sont grisées.</div><div class="scroll"><table><tr><th></th>'+
     m.labels.map(function(l){return"<th>"+esc(l)+"</th>"}).join("")+"</tr>";
     m.rows.forEach(function(r){
       h+="<tr><td>"+esc(r.name)+"</td>"+r.cells.map(function(c){
