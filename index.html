@@ -177,6 +177,7 @@ function render(){
 }
 
 /* ---------- win rates ---------- */
+function lowN(){return{week:5,month:15,quarter:30}[win]||30}
 function vw(){
   var w=W();if(!w)return noData();
   var r=w.factions.slice().sort(function(a,b){
@@ -184,12 +185,12 @@ function vw(){
     if(typeof x==="string")return x.localeCompare(y)*sortD*-1;
     return((x==null?-1:x)-(y==null?-1:y))*sortD;
   });
-  var h='<div class="card"><div class="warn">'+esc(w.label)+' · le nombre de parties est indiqué : en dessous de 30 parties, le pourcentage est peu fiable (ligne grisée). Tendance = écart avec il y a 7 jours (apparaît après une semaine d’historique).</div><div class="scroll"><table><tr>'+
+  var h='<div class="card"><div class="warn">'+esc(w.label)+' · le nombre de parties est indiqué : en dessous de '+lowN()+' parties sur cette période, le pourcentage est peu fiable (ligne grisée ; seuils : 5 parties sur 1 semaine, 15 sur 1 mois, 30 sur 3 mois). Tendance = écart avec il y a 7 jours (apparaît après une semaine d’historique).</div><div class="scroll"><table><tr>'+
   '<th class="s" onclick="so(\'name\')">Armée</th><th class="s" onclick="so(\'win_rate\')">Victoires %</th><th class="s" onclick="so(\'games\')">Parties</th><th>Tendance</th></tr>';
   r.forEach(function(x){
     var d=delta(x.id),dt=d==null?"–":'<span class="'+(d>=0?"up":"dn")+'">'+(d>=0?"▲ +":"▼ ")+d.toFixed(1)+"</span>";
     var ci=x.ci_low!=null?'<div class="sub">'+x.ci_low+" – "+x.ci_high+"</div>":"";
-    h+='<tr class="'+(x.games<30?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span>"+ci+"</td><td>"+x.games+"</td><td>"+dt+"</td></tr>";
+    h+='<tr class="'+(x.games<lowN()?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span>"+ci+"</td><td>"+x.games+"</td><td>"+dt+"</td></tr>";
   });
   return h+"</table></div></div>";
 }
@@ -720,7 +721,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v18</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v19</div></div>':"");
 }
 function pendingCount(){
   var n=0;
