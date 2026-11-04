@@ -129,3 +129,16 @@ revoke all on profiles, teams, team_members, lb_docs from anon;
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on profiles, teams, team_members, lb_docs to authenticated;
 grant execute on function is_admin(), is_approved(), is_member(uuid), can_manage(uuid), is_owner(uuid), shares_team(uuid) to authenticated;
+
+-- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.
+insert into profiles (id, email, pseudo, approved, is_admin)
+select u.id, u.email,
+  case when lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com' then 'Iscalis'
+       else left(coalesce(nullif(trim(u.raw_user_meta_data ->> 'pseudo'), ''), split_part(u.email, '@', 1)), 30) end,
+  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com',
+  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com'
+from auth.users u
+where not exists (select 1 from profiles p where p.id = u.id)
+on conflict do nothing;
+
+notify pgrst, 'reload schema';
