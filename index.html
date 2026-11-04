@@ -81,7 +81,7 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 <script>
 "use strict";
 var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
-var DATA=null,TREND={},LOADERR="";
+var DATA=null,TREND={},LOADERR="",ANA=null,anaView="season";
 var tab=ld("tab","w"),win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
 function ld(k,d){try{var s=localStorage.getItem("lb_"+k);return s===null?d:JSON.parse(s)}catch(e){return d}}
 function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v));return true}catch(e){return false}}
@@ -97,7 +97,7 @@ var notes=ld("notes",{who:"Équipe",r:{}});
 /* ---------- données ---------- */
 function load(){
   var j=function(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" : HTTP "+r.status);return r.json()})};
-  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}})]).then(function(a){DATA=a[0];TREND=a[1]||{}}).catch(function(e){LOADERR=String(e.message||e)});
+  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}}),j("data/analytics.json").catch(function(){return null})]).then(function(a){DATA=a[0];TREND=a[1]||{};ANA=a[2]}).catch(function(e){LOADERR=String(e.message||e)});
 }
 function W(){return DATA&&DATA.windows&&DATA.windows[win]}
 function status(){
@@ -177,10 +177,34 @@ var DN=["Disruption","Take and Hold","Priority Assets","Purge the Foe","Reconnai
 var DM=[["Outmanoeuvre","Death Trap","Locate and Deny","Delaying Action","Smoke and Mirrors"],["Determined Acquisition","Battlefield Dominance","Inescapable Dominion","Immovable Object","Purge and Secure"],["Extract Relic","Secure Asset","Sabotage","Vital Link","Vanguard Operation"],["Punishment","Unstoppable Force","Destroyer’s Wrath","Meatgrinder","Consecrate"],["Surveil the Foe","Reconnaissance Sweep","Search and Scour","Triangulation","Gather Intel"]];
 var DR=[[3,2.5,2,1.5,2],[3,3,2.5,1.5,3],[4,3.5,3,3.5,3],[3.5,5,2.5,3,3],[4,3.5,4,2.5,3]];
 var DD=[[0,0,0,0,0],[0,0,0,0,0],[1,1,0,1,0],[0,0,0,0,0],[0,0,0,0,0]];
+function anaCard(){
+  var A=ANA&&ANA.disposition;if(!A||!A.views||!A.views.length)return"";
+  var v=A.views.filter(function(x){return x.key===anaView})[0]||A.views[0];
+  function cell(a,b){
+    if(a===b)return null;
+    var p=v.pairs.filter(function(q){return(q.a===a&&q.b===b)||(q.a===b&&q.b===a)})[0];
+    if(!p)return null;
+    var w=(p.a===a?p.a_win:p.b_win)+p.draw/2;
+    return{w:w,g:p.games,d:p.draw};
+  }
+  var h='<div class="card"><b>Grand échantillon (40k-analytics)</b><div class="warn">Source : 40k-analytics, '+esc(ANA.total_matches||"")+' · données jusqu’au '+esc(ANA.data_end_label)+'. Les nuls comptent pour une demi-victoire. Rapport périodique : saison entière ou fenêtres après chaque mise à jour d’équilibrage (pas semaine/mois/3 mois). Lecture : la ligne affronte la colonne.</div><select onchange="anaView=this.value;render()">'+
+  A.views.map(function(x){return'<option value="'+x.key+'"'+(x.key===v.key?" selected":"")+">"+esc(x.label)+" — "+x.games_total.toLocaleString("fr-CH")+" parties</option>"}).join("")+
+  '</select><div class="scroll"><table><tr><th></th>'+DN.map(function(n){return"<th>"+esc(n)+"</th>"}).join("")+"<th>Moy.</th></tr>";
+  DN.forEach(function(a){
+    var sum=0,n=0;
+    h+="<tr><td>"+esc(a)+"</td>"+DN.map(function(b){
+      var c=cell(a,b);
+      if(!c)return"<td>–</td>";
+      sum+=c.w;n++;
+      return'<td class="'+(c.g<200?"low":"")+'"><span class="cell" style="background:'+col(c.w)+'">'+pc(c.w)+'</span><div class="sub">'+c.g.toLocaleString("fr-CH")+"</div></td>";
+    }).join("")+"<td><b>"+(n?(sum/n).toFixed(1)+"%":"–")+"</b></td></tr>";
+  });
+  return h+"</table></div></div>";
+}
 function vd(){
-  var h="",w=W(),m=w&&w.dispositions;
+  var h=anaCard(),w=W(),m=w&&w.dispositions;
   if(m){
-    h+='<div class="card"><b>Résultats réels des parties</b><div class="warn">'+esc(w.label)+' · MiniHeadQuarters. Chaque case : % de victoires et nombre de parties. Lecture : la ligne affronte la colonne, case = % de victoires de la ligne (« - » = même disposition). Les cases à peu de parties sont grisées.</div><div class="scroll"><table><tr><th></th>'+
+    h+='<div class="card"><b>Résultats MiniHeadQuarters (petits échantillons)</b><div class="warn">'+esc(w.label)+' · MiniHeadQuarters. Chaque case : % de victoires et nombre de parties. Lecture : la ligne affronte la colonne, case = % de victoires de la ligne (« - » = même disposition). Les cases à peu de parties sont grisées.</div><div class="scroll"><table><tr><th></th>'+
     m.labels.map(function(l){return"<th>"+esc(l)+"</th>"}).join("")+"</tr>";
     m.rows.forEach(function(r){
       h+="<tr><td>"+esc(r.name)+"</td>"+r.cells.map(function(c){
@@ -195,7 +219,7 @@ function vd(){
     h+='<div class="card"><b>Win rate global par disposition</b><div class="scroll"><table><tr><th>Disposition</th><th>Victoires %</th><th>Parties</th></tr>'+
     ov.map(function(r){return"<tr><td>"+esc(r.name)+'</td><td><span class="cell" style="background:'+(r.win_rate==null?"var(--bd)":col(r.win_rate))+'">'+pc(r.win_rate)+"</span></td><td>"+r.games+"</td></tr>"}).join("")+"</table></div></div>";
   }
-  if(!m&&!(ov&&ov.length)){
+  if(!m&&!(ov&&ov.length)&&!ANA){
     h+=DATA?'<div class="card"><div class="mut">Pas de statistiques de dispositions dans la dernière mise à jour. Les notes d’auteurs ci-dessous restent valables.</div></div>':noData();
   }
   h+='<div class="card"><b>Référence : notes de matchup (1 à 5)</b><div class="warn">Source : Tabletop Battles (Goonhammer), revues des Force Dispositions 11e édition, juin 2026. Ligne = ta disposition, colonne = celle de l’adversaire, avec la mission jouée. * = déduit de la note adverse (6 − note). Avis d’auteurs, pas des statistiques de parties.</div><div class="scroll"><table><tr><th></th>'+
