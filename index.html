@@ -271,7 +271,8 @@ function sortedEvents(){
   var pa=LB.events.filter(function(e){return e.date<t}).sort(function(a,b){return a.date<b.date?1:-1});
   return up.concat(pa);
 }
-function lEvents(){return sortedEvents().filter(function(e){return isMgr()||!CFG||(e.parts||[]).some(function(p){return AS&&p.uid===AS.uid})})}
+function lEvents(){return sortedEvents()}
+function myEvents(){return sortedEvents().filter(function(e){return isMgr()||!CFG||(e.parts||[]).some(function(p){return AS&&p.uid===AS.uid})})}
 function evById(id){return LB.events.filter(function(e){return e.id===id})[0]}
 function listById(id){return LB.lists.filter(function(l){return l.id===id})[0]}
 function listOf(ev,u){return LB.lists.filter(function(l){return l.eventId===ev.id&&(l.uid||l.player)===u})[0]}
@@ -282,8 +283,8 @@ function facOptions(sel){
   return names.map(function(n){return"<option"+(n===sel?" selected":"")+">"+esc(n)+"</option>"}).join("");
 }
 function dispOptions(sel,blank){return(blank?'<option value="">—</option>':"")+DN.map(function(n){return"<option"+(n===sel?" selected":"")+">"+esc(n)+"</option>"}).join("")}
-function evOptions(sel,withNew){
-  var evs=lEvents();
+function evOptions(sel,withNew,mine){
+  var evs=mine?myEvents():lEvents();
   var o=evs.map(function(e){return'<option value="'+e.id+'"'+(e.id===sel?" selected":"")+">"+esc(e.name)+" — "+esc(fdate(e.date))+"</option>"}).join("");
   if(withNew&&isMgr())o+='<option value="__new"'+(evs.length?"":" selected")+">+ Nouvel événement…</option>";
   return o;
@@ -306,16 +307,16 @@ function detailHtml(){
   if(!l){lsel=null;return placeholder()}
   var e=evById(l.eventId),own=ownsList(l);
   return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.pseudo||l.player||"—")+" · "+esc(l.faction||"")+(l.disp?" · "+esc(l.disp):"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button>'+(own?'<button class="btn g" onclick="ldel()">Supprimer</button>':"")+'</div></div>'+
-  '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label>'+(own?'<select onchange="lmove(this.value)">'+evOptions(l.eventId,false)+'</select>':'<div>'+esc(e?e.name:"—")+"</div>")+
+  '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label>'+(own?'<select onchange="lmove(this.value)">'+evOptions(l.eventId,false,true)+'</select>':'<div>'+esc(e?e.name:"—")+"</div>")+
   '<pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(l.text)+"</pre>"+(l.img?'<img class="map" src="'+l.img+'" alt="Disposition">':"")+"</div>";
 }
 function formHtml(){
-  var m=me(),evs=lEvents(),canNew=isMgr();
+  var m=me(),evs=myEvents(),canNew=isMgr();
   if(!evs.length&&!canNew)return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="mut">Tu ne participes à aucun événement pour l’instant. Un capitaine doit t’ajouter à un événement (onglet Événements) avant que tu puisses déposer ta liste.</div></div>';
   return'<div class="card fm"><button class="btn g back" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px">'+
   (m?'<div class="mut" style="margin-top:6px">Joueur : <b>'+esc(m.pseudo)+"</b></div>":'<select id="lp">'+players.map(function(p){return"<option>"+esc(p)+"</option>"}).join("")+"</select>")+
   '<select id="lf">'+facOptions("")+'</select><select id="ld">'+dispOptions("",true).replace("—","Disposition de la liste")+"</select>"+
-  '<label class="mut">Événement'+(canNew?" : rejoins-en un ou crée-le":"")+'</label><select id="le" onchange="lenew(this.value)">'+evOptions(lpre,true)+'</select>'+
+  '<label class="mut">Événement'+(canNew?" : rejoins-en un ou crée-le":"")+'</label><select id="le" onchange="lenew(this.value)">'+evOptions(lpre,true,true)+'</select>'+
   '<div id="lne" style="display:'+(!evs.length&&canNew?"block":"none")+'"><input id="len" placeholder="Nom du nouvel événement"><input id="led" type="date" value="'+today()+'"></div>'+
   '<textarea id="lt" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, facultatif)</label><input type="file" id="li" accept="image/*" onchange="limg(this)"><button class="btn" onclick="lsave()">Enregistrer</button></div>';
 }
