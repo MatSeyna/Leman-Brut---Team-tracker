@@ -47,6 +47,19 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 .sel button.on{background:var(--ac);color:#190d05;border-color:var(--ac);font-weight:700}
 .up{color:var(--up)}.dn{color:var(--dn)}
 .sub{font-size:10px;color:var(--mut)}
+.split{display:grid;grid-template-columns:300px 1fr;gap:12px;align-items:start}
+.side{position:sticky;top:72px;max-height:calc(100vh - 90px);overflow:auto}
+.back{display:none;margin-bottom:8px}
+.chips{display:flex;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--bd);background:transparent;color:var(--tx);border-radius:999px;padding:4px 10px;font-size:12px}
+.chip.on{background:var(--ac);color:#190d05;border-color:var(--ac);font-weight:700}
+.ev{margin-top:12px;border-top:1px solid var(--bd);padding-top:8px}
+.evh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.li{padding:8px;border-radius:8px;cursor:pointer;margin-top:6px;border:1px solid transparent}
+.li:hover{background:rgba(224,115,31,.08)}
+.li.on{border-color:var(--ac);background:rgba(224,115,31,.14)}
+.btn.sm{padding:3px 9px;font-size:12px;margin:0}
+@media (max-width:720px){.split{grid-template-columns:1fr}.side{position:static;max-height:none}.split.show-main .side{display:none}.split:not(.show-main) .mainpane{display:none}.back{display:inline-block}}
 #splash{position:fixed;inset:0;z-index:100;background:#0e0b09 url(hero.jpg) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 24px calc(52px + env(safe-area-inset-bottom,0px));transition:opacity .6s ease}
 #splash::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,11,9,.10) 45%,rgba(14,11,9,.93))}
 #splash>*{position:relative}
@@ -70,15 +83,13 @@ img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--b
 var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
 var DATA=null,TREND={},LOADERR="";
 var tab=ld("tab","w"),win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
-var tmp=null;
 function ld(k,d){try{var s=localStorage.getItem("lb_"+k);return s===null?d:JSON.parse(s)}catch(e){return d}}
-function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v))}catch(e){}}
+function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v));return true}catch(e){return false}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function col(v){var h=Math.max(0,Math.min(120,(v-35)/30*120));return"hsl("+h+",60%,55%)"}
 function cc(v){return col(30+v*8)}
 function pc(v){return v==null?"–":v.toFixed(1)+"%"}
 
-var armies=ld("armies",[]);
 var players=ld("players",["Joueur 1","Joueur 2","Joueur 3","Joueur 4","Joueur 5"]);
 var enemies=ld("enemies",["Équipe 1","Équipe 2","Équipe 3","Équipe 4","Équipe 5"].map(function(n){return{n:n,r:[0,0,0,0,0]}}));
 var notes=ld("notes",{who:"Équipe",r:{}});
@@ -207,30 +218,114 @@ function vd(){
 function nw(v){notes.who=v;sv("notes",notes);render()}
 function nt(i,j){var w=notes.who;notes.r[w]=notes.r[w]||{};var k=i+"-"+j;notes.r[w][k]=((notes.r[w][k]||0)+1)%6;sv("notes",notes);render()}
 
-/* ---------- listes ---------- */
+/* ---------- listes & événements ---------- */
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function today(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function fdate(s){var q=String(s).split("-");return new Date(+q[0],+q[1]-1,+q[2]).toLocaleDateString("fr-CH",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
+var LB=ld("data",null);
+if(!LB){
+  LB={events:[],lists:[]};
+  var oldA=ld("armies",[]);
+  if(oldA.length){var oe=uid();LB.events.push({id:oe,name:"Sans événement",date:today()});oldA.forEach(function(a){LB.lists.push({id:uid(),name:a.name,faction:a.f,player:"",eventId:oe,text:a.txt,img:"",created:Date.now()})})}
+}
+var lsel=null,lform=false,lfilter="all",tmpImg="";
+function persist(){if(!sv("data",LB))alert("La mémoire de l’appareil est pleine : supprime des photos ou des listes.")}
+function sortedEvents(){
+  var t=today();
+  var up=LB.events.filter(function(e){return e.date>=t}).sort(function(a,b){return a.date<b.date?-1:1});
+  var pa=LB.events.filter(function(e){return e.date<t}).sort(function(a,b){return a.date<b.date?1:-1});
+  return up.concat(pa);
+}
+function evById(id){return LB.events.filter(function(e){return e.id===id})[0]}
+function listById(id){return LB.lists.filter(function(l){return l.id===id})[0]}
 function facOptions(){
   var names=DATA&&DATA.windows&&DATA.windows.quarter?DATA.windows.quarter.factions.map(function(f){return f.name}).sort():[];
   if(!names.length)return"<option>Autre</option>";
-  return names.map(function(n){return"<option>"+esc(n)+"</option>"}).join("");
+  return names.concat(["Autre"]).map(function(n){return"<option>"+esc(n)+"</option>"}).join("");
 }
-function va(){
-  var h='<div class="card"><b>Nouvelle liste / import</b><input id="an" placeholder="Nom de la liste"><select id="af">'+facOptions()+'</select><textarea id="at" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, gardée jusqu’à la fermeture de la page)</label><input type="file" id="ai" accept="image/*" onchange="im(this)"><button class="btn" onclick="ad()">Enregistrer</button></div>';
-  if(!armies.length)h+='<div class="card mut">Aucune liste enregistrée pour l’instant.</div>';
-  armies.forEach(function(a,i){
-    h+='<div class="card"><div class="army"><div><b>'+esc(a.name)+'</b><div class="mut">'+esc(a.f)+'</div></div><div><button class="btn g" onclick="cp('+i+')">Copier</button><button class="btn g" onclick="rm('+i+')">✕</button></div></div><pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(a.txt)+"</pre>"+(a.img?'<img class="map" src="'+a.img+'" alt="Disposition">':"")+"</div>";
+function evOptions(sel,withNew){
+  var o=sortedEvents().map(function(e){return'<option value="'+e.id+'"'+(e.id===sel?" selected":"")+">"+esc(e.name)+" — "+esc(fdate(e.date))+"</option>"}).join("");
+  if(withNew)o+='<option value="__new"'+(sortedEvents().length?"":" selected")+">+ Nouvel événement…</option>";
+  return o;
+}
+function sideHtml(){
+  var t=today(),evs=sortedEvents().filter(function(e){return lfilter==="all"||(lfilter==="up"?e.date>=t:e.date<t)});
+  var h='<div class="side card"><div class="army"><b>Listes</b><button class="btn" onclick="lnew()">+ Nouvelle</button></div><div class="chips">'+
+  [["all","Tous"],["up","À venir"],["past","Passés"]].map(function(c){return'<button class="chip'+(lfilter===c[0]?" on":"")+'" onclick="lflt(\''+c[0]+'\')">'+c[1]+"</button>"}).join("")+"</div>";
+  if(!evs.length)h+='<div class="mut" style="margin-top:12px">'+(LB.events.length?"Aucun événement dans ce filtre.":"Aucune liste pour l’instant. Crée la première avec « + Nouvelle ».")+"</div>";
+  evs.forEach(function(e){
+    var ls=LB.lists.filter(function(l){return l.eventId===e.id});
+    h+='<div class="ev"><div class="evh"><div><b>'+esc(e.name)+'</b><div class="sub">'+esc(fdate(e.date))+" · "+ls.length+" liste"+(ls.length>1?"s":"")+'</div></div><button class="btn g sm" onclick="eedit(\''+e.id+'\')">✎</button></div>';
+    ls.forEach(function(l){h+='<div class="li'+(lsel===l.id?" on":"")+'" onclick="lopen(\''+l.id+'\')"><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.player||"—")+" · "+esc(l.faction||"")+"</div></div>"});
+    h+="</div>";
   });
-  return h;
+  return h+"</div>";
 }
-function im(el){var f=el.files[0];if(!f)return;var r=new FileReader();r.onload=function(){tmp=r.result};r.readAsDataURL(f)}
-function ad(){
-  var n=document.getElementById("an").value.trim()||"Sans nom";
-  armies.unshift({name:n,f:document.getElementById("af").value,txt:document.getElementById("at").value,img:tmp||""});
-  tmp=null;
-  sv("armies",armies.map(function(a){return{name:a.name,f:a.f,txt:a.txt,img:""}}));
-  render();
+function detailHtml(){
+  var l=listById(lsel);
+  if(!l){lsel=null;return placeholder()}
+  var e=evById(l.eventId);
+  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><div class="army"><div><b style="font-size:17px">'+esc(l.name)+'</b><div class="mut">'+esc(l.player||"—")+" · "+esc(l.faction||"")+'</div></div><div><button class="btn g" onclick="lcopy()">Copier</button><button class="btn g" onclick="ldel()">Supprimer</button></div></div>'+
+  '<label class="mut" style="display:block;margin-top:10px">Événement'+(e?" · "+esc(fdate(e.date)):"")+'</label><select onchange="lmove(this.value)">'+evOptions(l.eventId,false)+'</select>'+
+  '<pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(l.text)+"</pre>"+(l.img?'<img class="map" src="'+l.img+'" alt="Disposition">':"")+"</div>";
 }
-function rm(i){armies.splice(i,1);sv("armies",armies.map(function(a){return{name:a.name,f:a.f,txt:a.txt,img:""}}));render()}
-function cp(i){var a=armies[i],t=a.name+" ("+a.f+")\n\n"+a.txt;try{navigator.clipboard.writeText(t)}catch(e){}}
+function formHtml(){
+  var none=!LB.events.length;
+  return'<div class="card"><button class="btn g back" onclick="lback()">← Retour</button><b>Nouvelle liste</b><input id="ln" placeholder="Nom de la liste" style="margin-top:8px"><select id="lp">'+players.map(function(p){return"<option>"+esc(p)+"</option>"}).join("")+'</select><select id="lf">'+facOptions()+'</select>'+
+  '<label class="mut">Événement : rejoins-en un ou crée-le</label><select id="le" onchange="lenew(this.value)">'+evOptions("",true)+'</select>'+
+  '<div id="lne" style="display:'+(none?"block":"none")+'"><input id="len" placeholder="Nom du nouvel événement"><input id="led" type="date" value="'+today()+'"></div>'+
+  '<textarea id="lt" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, facultatif)</label><input type="file" id="li" accept="image/*" onchange="limg(this)"><button class="btn" onclick="lsave()">Enregistrer</button></div>';
+}
+function placeholder(){return'<div class="card mut">Choisis une liste dans la colonne de gauche, ou crée-en une avec « + Nouvelle ».</div>'}
+function va(){
+  var main=lform?formHtml():lsel?detailHtml():placeholder();
+  return'<div class="split'+(lform||lsel?" show-main":"")+'">'+sideHtml()+'<div class="mainpane">'+main+"</div></div>";
+}
+function lnew(){lform=true;lsel=null;tmpImg="";render()}
+function lback(){lform=false;lsel=null;render()}
+function lopen(id){lsel=id;lform=false;render()}
+function lflt(f){lfilter=f;render()}
+function lenew(v){document.getElementById("lne").style.display=v==="__new"?"block":"none"}
+function limg(el){
+  var f=el.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){var im=new Image();im.onload=function(){var s=Math.min(1,900/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext("2d").drawImage(im,0,0,c.width,c.height);tmpImg=c.toDataURL("image/jpeg",.65)};im.src=r.result};
+  r.readAsDataURL(f);
+}
+function lsave(){
+  var ev=document.getElementById("le").value,eid=ev;
+  if(ev==="__new"){
+    var en=document.getElementById("len").value.trim(),ed=document.getElementById("led").value;
+    if(!en){alert("Donne un nom à l’événement.");return}
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ed)){alert("Choisis une date pour l’événement.");return}
+    eid=uid();LB.events.push({id:eid,name:en,date:ed});
+  }
+  var id=uid();
+  LB.lists.push({id:id,name:document.getElementById("ln").value.trim()||"Sans nom",faction:document.getElementById("lf").value,player:document.getElementById("lp").value,eventId:eid,text:document.getElementById("lt").value,img:tmpImg,created:Date.now()});
+  persist();tmpImg="";lform=false;lsel=id;render();
+}
+function lmove(eid){var l=listById(lsel);if(!l)return;l.eventId=eid;persist();render()}
+function ldel(){var l=listById(lsel);if(!l||!confirm("Supprimer « "+l.name+" » ?"))return;LB.lists=LB.lists.filter(function(x){return x.id!==l.id});persist();lsel=null;render()}
+function lcopy(){
+  var l=listById(lsel);if(!l)return;
+  var e=evById(l.eventId),t=l.name+" ("+l.faction+")\n"+(l.player?l.player+" · ":"")+(e?e.name+" · "+fdate(e.date):"")+"\n\n"+l.text;
+  try{navigator.clipboard.writeText(t)}catch(x){}
+}
+function eedit(id){
+  var e=evById(id);if(!e)return;
+  var n=prompt("Nom de l’événement (vide = supprimer, si aucune liste)",e.name);
+  if(n===null)return;
+  n=n.trim();
+  if(!n){
+    if(LB.lists.some(function(l){return l.eventId===id})){alert("Cet événement contient des listes : déplace-les d’abord.");return}
+    LB.events=LB.events.filter(function(x){return x.id!==id});persist();render();return;
+  }
+  var d=prompt("Date (AAAA-MM-JJ)",e.date);
+  if(d===null)return;
+  d=d.trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert("Format de date invalide. Exemple : 2026-11-21");return}
+  e.name=n;e.date=d;persist();render();
+}
 
 /* ---------- priorités ---------- */
 function vp(){
