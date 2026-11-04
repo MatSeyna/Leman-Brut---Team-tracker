@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101114">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Leman Brut</title>
+<style>
+:root{--bg:#f3f1ec;--card:#fff;--tx:#1d1d1f;--mut:#6b6b70;--ac:#b8860b;--bd:#ddd8cc;--up:#17803d;--dn:#b42318}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101114;--card:#1a1c21;--tx:#ecebe6;--mut:#9a9aa3;--ac:#d4a62a;--bd:#2c2f36;--up:#4ade80;--dn:#f87171;color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:14px 16px 4px}
+h1{font-size:18px;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--ac)}
+.mut{color:var(--mut);font-size:12px}
+.bar{display:flex;gap:6px;padding:6px 12px;overflow-x:auto}
+.bar button{flex:1;white-space:nowrap;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:9px 12px;border-radius:10px;font-size:14px}
+.bar button.on{background:var(--ac);color:#111;border-color:var(--ac);font-weight:600}
+#nav{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+#win button{padding:7px 10px;font-size:13px}
+main{padding:8px 12px 40px;max-width:980px;margin:0 auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap;vertical-align:top}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+th.s{cursor:pointer}
+.cell{color:#111;font-weight:600;border-radius:4px;padding:2px 6px;display:inline-block}
+.low{opacity:.55}
+.warn{background:#d4a62a22;border:1px dashed var(--ac);padding:8px 10px;border-radius:8px;font-size:12px;margin-bottom:10px}
+.err{border-color:var(--dn)}
+input,select,textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:9px;font:inherit;margin-bottom:8px}
+textarea{min-height:130px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.btn{border:0;background:var(--ac);color:#111;font-weight:600;padding:9px 14px;border-radius:8px;margin-right:6px;margin-top:2px}
+.btn.g{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+.army{display:flex;justify-content:space-between;align-items:center;gap:8px}
+img.map{max-width:100%;border-radius:8px;margin-top:8px;border:1px solid var(--bd)}
+.sel{display:flex;gap:4px;justify-content:center}
+.sel button{width:28px;height:28px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx)}
+.sel button.on{background:var(--ac);color:#111;border-color:var(--ac)}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.sub{font-size:10px;color:var(--mut)}
+</style>
+</head>
+<body>
+<header><h1>⚔ Leman Brut</h1><div class="mut" id="upd">Chargement…</div></header>
+<div id="nav"><div class="bar" id="tabs"></div><div class="bar" id="win"></div></div>
+<main id="v"></main>
+<script>
+"use strict";
+var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
+var DATA=null,TREND={},LOADERR="";
+var tab=ld("tab","w"),win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
+var tmp=null;
+function ld(k,d){try{var s=localStorage.getItem("lb_"+k);return s===null?d:JSON.parse(s)}catch(e){return d}}
+function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v))}catch(e){}}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function col(v){var h=Math.max(0,Math.min(120,(v-35)/30*120));return"hsl("+h+",60%,55%)"}
+function cc(v){return col(30+v*8)}
+function pc(v){return v==null?"–":v.toFixed(1)+"%"}
+
+var armies=ld("armies",[]);
+var players=ld("players",["Joueur 1","Joueur 2","Joueur 3","Joueur 4","Joueur 5"]);
+var enemies=ld("enemies",["Équipe 1","Équipe 2","Équipe 3","Équipe 4","Équipe 5"].map(function(n){return{n:n,r:[0,0,0,0,0]}}));
+var notes=ld("notes",{who:"Équipe",r:{}});
+
+/* ---------- données ---------- */
+function load(){
+  var j=function(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" : HTTP "+r.status);return r.json()})};
+  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}})]).then(function(a){DATA=a[0];TREND=a[1]||{}}).catch(function(e){LOADERR=String(e.message||e)});
+}
+function W(){return DATA&&DATA.windows&&DATA.windows[win]}
+function status(){
+  var el=document.getElementById("upd");
+  if(!DATA){el.textContent="Pas encore de données";return}
+  var s="Données du "+DATA.date+" · MiniHeadQuarters";
+  if(DATA.stale&&DATA.stale.length)s+=" · "+DATA.stale.length+" tableau(x) non rafraîchi(s)";
+  el.textContent=s;
+}
+function noData(){
+  return'<div class="card err"><b>Pas encore de données</b><div class="mut" style="margin-top:6px">La première mise à jour automatique n’a pas encore tourné'+(LOADERR?" ("+esc(LOADERR)+")":"")+'. Dans le dépôt GitHub : onglet Actions → « Daily stats snapshot » → Run workflow.</div></div>';
+}
+function delta(id){
+  var t=(TREND[win]||{})[id];if(!t||t.points.length<2)return null;
+  var last=t.points[t.points.length-1],d=new Date(last[0]);d.setDate(d.getDate()-7);
+  var ts=d.toISOString().slice(0,10),ref=null;
+  t.points.forEach(function(p){if(p[0]<=ts)ref=p});
+  return ref?last[1]-ref[1]:null;
+}
+
+/* ---------- navigation ---------- */
+var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["a","Listes"],["p","Priorités"]];
+function nav(){
+  document.getElementById("tabs").innerHTML=T.map(function(t){return'<button class="'+(tab===t[0]?"on":"")+'" onclick="go(\''+t[0]+'\')">'+t[1]+"</button>"}).join("");
+  var showWin=tab==="w"||tab==="m"||tab==="d";
+  var w=document.getElementById("win");
+  w.style.display=showWin?"flex":"none";
+  w.innerHTML=WK.map(function(k){return'<button class="'+(win===k[0]?"on":"")+'" onclick="setWin(\''+k[0]+'\')">'+k[1]+"</button>"}).join("");
+}
+function go(t){tab=t;sv("tab",t);render()}
+function setWin(k){win=k;sv("win",k);render()}
+function render(){
+  nav();status();
+  var v=document.getElementById("v");
+  v.innerHTML=tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():vp();
+}
+
+/* ---------- win rates ---------- */
+function vw(){
+  var w=W();if(!w)return noData();
+  var r=w.factions.slice().sort(function(a,b){
+    var x=a[sortK],y=b[sortK];
+    if(typeof x==="string")return x.localeCompare(y)*sortD*-1;
+    return((x==null?-1:x)-(y==null?-1:y))*sortD;
+  });
+  var h='<div class="card"><div class="warn">'+esc(w.label)+' · le nombre de parties est indiqué : en dessous de 30 parties, le pourcentage est peu fiable (ligne grisée). Tendance = écart avec il y a 7 jours (apparaît après une semaine d’historique).</div><div class="scroll"><table><tr>'+
+  '<th class="s" onclick="so(\'name\')">Armée</th><th class="s" onclick="so(\'win_rate\')">Victoires %</th><th class="s" onclick="so(\'games\')">Parties</th><th>Tendance</th></tr>';
+  r.forEach(function(x){
+    var d=delta(x.id),dt=d==null?"–":'<span class="'+(d>=0?"up":"dn")+'">'+(d>=0?"▲ +":"▼ ")+d.toFixed(1)+"</span>";
+    var ci=x.ci_low!=null?'<div class="sub">'+x.ci_low+" – "+x.ci_high+"</div>":"";
+    h+='<tr class="'+(x.games<30?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span>"+ci+"</td><td>"+x.games+"</td><td>"+dt+"</td></tr>";
+  });
+  return h+"</table></div></div>";
+}
+function so(k){if(sortK===k)sortD*=-1;else{sortK=k;sortD=-1}render()}
+
+/* ---------- matchups ---------- */
+function vm(){
+  var w=W();if(!w)return noData();
+  var fs=w.factions.filter(function(f){return f.id!=null&&w.matchups[String(f.id)]}).sort(function(a,b){return a.name.localeCompare(b.name)});
+  if(!fs.length)return noData();
+  if(!fs.some(function(f){return String(f.id)===String(mFac)}))mFac=String(fs[0].id);
+  var rows=(w.matchups[String(mFac)]||[]).slice();
+  rows.sort(mSort==="win_rate"?function(a,b){return(b.win_rate||0)-(a.win_rate||0)}:function(a,b){return b.games-a.games});
+  var h='<div class="card"><select onchange="mf(this.value)">'+fs.map(function(f){return'<option value="'+f.id+'"'+(String(f.id)===String(mFac)?" selected":"")+">"+esc(f.name)+"</option>"}).join("")+
+  '</select><div class="warn">'+esc(w.label)+' · win rate de l’armée choisie contre chaque adversaire. Peu de parties = grisé (moins de 10). Trie par : <button class="btn g" onclick="ms(\'games\')">parties</button><button class="btn g" onclick="ms(\'win_rate\')">victoires</button></div><div class="scroll"><table><tr><th>Adversaire</th><th>Victoires %</th><th>Parties</th><th>Intervalle</th></tr>';
+  rows.forEach(function(x){
+    h+='<tr class="'+(x.games<10?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span></td><td>"+x.games+"</td><td>"+(x.low!=null?x.low+" – "+x.high:"–")+"</td></tr>";
+  });
+  return h+"</table></div></div>";
+}
+function mf(v){mFac=v;sv("mfac",v);render()}
+function ms(k){mSort=k;render()}
+
+/* ---------- dispositions ---------- */
+var DN=["Disruption","Take and Hold","Priority Assets","Purge the Foe","Reconnaissance"];
+var DM=[["Outmanoeuvre","Death Trap","Locate and Deny","Delaying Action","Smoke and Mirrors"],["Determined Acquisition","Battlefield Dominance","Inescapable Dominion","Immovable Object","Purge and Secure"],["Extract Relic","Secure Asset","Sabotage","Vital Link","Vanguard Operation"],["Punishment","Unstoppable Force","Destroyer’s Wrath","Meatgrinder","Consecrate"],["Surveil the Foe","Reconnaissance Sweep","Search and Scour","Triangulation","Gather Intel"]];
+var DR=[[3,2.5,2,1.5,2],[3,3,2.5,1.5,3],[4,3.5,3,3.5,3],[3.5,5,2.5,3,3],[4,3.5,4,2.5,3]];
+var DD=[[0,0,0,0,0],[0,0,0,0,0],[1,1,0,1,0],[0,0,0,0,0],[0,0,0,0,0]];
+function vd(){
+  var h="",w=W(),m=w&&w.dispositions;
+  if(m){
+    h+='<div class="card"><b>Résultats réels des parties</b><div class="warn">'+esc(w.label)+' · MiniHeadQuarters. Chaque case : % de victoires et nombre de parties. Lecture probable : ligne contre colonne (à confirmer avec la première mise à jour). Les cases à peu de parties sont grisées.</div><div class="scroll"><table><tr><th></th>'+
+    m.labels.map(function(l){return"<th>"+esc(l)+"</th>"}).join("")+"</tr>";
+    m.rows.forEach(function(r){
+      h+="<tr><td>"+esc(r.name)+"</td>"+r.cells.map(function(c){
+        if(c.win_rate==null)return"<td>"+esc(c.raw||"–")+"</td>";
+        return'<td class="'+(c.games!=null&&c.games<15?"low":"")+'"><span class="cell" style="background:'+col(c.win_rate)+'">'+pc(c.win_rate)+"</span>"+(c.games!=null?'<div class="sub">'+c.games+" parties</div>":"")+"</td>";
+      }).join("")+"</tr>";
+    });
+    h+="</table></div></div>";
+  }
+  var ov=w&&w.dispositions_overall;
+  if(ov&&ov.length){
+    h+='<div class="card"><b>Win rate global par disposition</b><div class="scroll"><table><tr><th>Disposition</th><th>Victoires %</th><th>Parties</th></tr>'+
+    ov.map(function(r){return"<tr><td>"+esc(r.name)+'</td><td><span class="cell" style="background:'+(r.win_rate==null?"var(--bd)":col(r.win_rate))+'">'+pc(r.win_rate)+"</span></td><td>"+r.games+"</td></tr>"}).join("")+"</table></div></div>";
+  }
+  if(!m&&!(ov&&ov.length)){
+    h+=DATA?'<div class="card"><div class="mut">Pas de statistiques de dispositions dans la dernière mise à jour. Les notes d’auteurs ci-dessous restent valables.</div></div>':noData();
+  }
+  h+='<div class="card"><b>Référence : notes de matchup (1 à 5)</b><div class="warn">Source : Tabletop Battles (Goonhammer), revues des Force Dispositions 11e édition, juin 2026. Ligne = ta disposition, colonne = celle de l’adversaire, avec la mission jouée. * = déduit de la note adverse (6 − note). Avis d’auteurs, pas des statistiques de parties.</div><div class="scroll"><table><tr><th></th>'+
+  DN.map(function(n){return"<th>"+esc(n)+"</th>"}).join("")+"<th>Moy.</th></tr>";
+  DN.forEach(function(a,i){
+    var s=0;
+    h+="<tr><td>"+esc(a)+"</td>"+DR[i].map(function(v,j){s+=v;return'<td><span class="cell" style="background:'+cc(v)+'">'+v+(DD[i][j]?"*":"")+'</span><div class="sub">'+esc(DM[i][j])+"</div></td>"}).join("")+"<td><b>"+(s/5).toFixed(1)+"</b></td></tr>";
+  });
+  h+='</table></div></div><div class="card"><b>Vos notes</b><select onchange="nw(this.value)">'+["Équipe"].concat(players).map(function(p){return"<option"+(p===notes.who?" selected":"")+">"+esc(p)+"</option>"}).join("")+
+  '</select><div class="mut" style="margin-bottom:6px">Touche une case pour noter de 1 (défavorable) à 5 (favorable).</div><div class="scroll"><table><tr><th></th>'+DN.map(function(n){return"<th>"+esc(n)+"</th>"}).join("")+"</tr>";
+  var R=notes.r[notes.who]||{};
+  DN.forEach(function(a,i){
+    h+="<tr><td>"+esc(a)+"</td>"+DN.map(function(b,j){
+      var v=R[i+"-"+j]||0;
+      return'<td><button class="cell" style="border:0;width:34px;height:30px;background:'+(v?cc(v):"var(--bg)")+";color:"+(v?"#111":"var(--mut)")+'" onclick="nt('+i+","+j+')">'+(v||"·")+"</button></td>";
+    }).join("")+"</tr>";
+  });
+  return h+"</table></div></div>";
+}
+function nw(v){notes.who=v;sv("notes",notes);render()}
+function nt(i,j){var w=notes.who;notes.r[w]=notes.r[w]||{};var k=i+"-"+j;notes.r[w][k]=((notes.r[w][k]||0)+1)%6;sv("notes",notes);render()}
+
+/* ---------- listes ---------- */
+function facOptions(){
+  var names=DATA&&DATA.windows&&DATA.windows.quarter?DATA.windows.quarter.factions.map(function(f){return f.name}).sort():[];
+  if(!names.length)return"<option>Autre</option>";
+  return names.map(function(n){return"<option>"+esc(n)+"</option>"}).join("");
+}
+function va(){
+  var h='<div class="card"><b>Nouvelle liste / import</b><input id="an" placeholder="Nom de la liste"><select id="af">'+facOptions()+'</select><textarea id="at" placeholder="Colle ici ta liste d’armée (export texte de l’app officielle, New Recruit…)"></textarea><label class="mut">Disposition (photo ou capture, gardée jusqu’à la fermeture de la page)</label><input type="file" id="ai" accept="image/*" onchange="im(this)"><button class="btn" onclick="ad()">Enregistrer</button></div>';
+  if(!armies.length)h+='<div class="card mut">Aucune liste enregistrée pour l’instant.</div>';
+  armies.forEach(function(a,i){
+    h+='<div class="card"><div class="army"><div><b>'+esc(a.name)+'</b><div class="mut">'+esc(a.f)+'</div></div><div><button class="btn g" onclick="cp('+i+')">Copier</button><button class="btn g" onclick="rm('+i+')">✕</button></div></div><pre style="white-space:pre-wrap;font-size:13px;margin:8px 0 0">'+esc(a.txt)+"</pre>"+(a.img?'<img class="map" src="'+a.img+'" alt="Disposition">':"")+"</div>";
+  });
+  return h;
+}
+function im(el){var f=el.files[0];if(!f)return;var r=new FileReader();r.onload=function(){tmp=r.result};r.readAsDataURL(f)}
+function ad(){
+  var n=document.getElementById("an").value.trim()||"Sans nom";
+  armies.unshift({name:n,f:document.getElementById("af").value,txt:document.getElementById("at").value,img:tmp||""});
+  tmp=null;
+  sv("armies",armies.map(function(a){return{name:a.name,f:a.f,txt:a.txt,img:""}}));
+  render();
+}
+function rm(i){armies.splice(i,1);sv("armies",armies.map(function(a){return{name:a.name,f:a.f,txt:a.txt,img:""}}));render()}
+function cp(i){var a=armies[i],t=a.name+" ("+a.f+")\n\n"+a.txt;try{navigator.clipboard.writeText(t)}catch(e){}}
+
+/* ---------- priorités ---------- */
+function vp(){
+  var h='<div class="card"><div class="warn">Note chaque match de 1 (mal à l’aise) à 5 (confiant). Touche un nom pour le renommer. Le total par équipe adverse s’affiche en bas. Ces notes restent sur cet appareil.</div><div class="scroll"><table><tr><th>Joueur</th>'+
+  enemies.map(function(e,j){return'<th class="s" onclick="rn(1,'+j+')">'+esc(e.n)+"</th>"}).join("")+"</tr>";
+  players.forEach(function(p,i){
+    h+='<tr><td onclick="rn(0,'+i+')" style="cursor:pointer">'+esc(p)+"</td>"+enemies.map(function(e,j){
+      var c=e.r[i]||0;
+      return'<td><div class="sel">'+[1,2,3,4,5].map(function(n){return'<button class="'+(c===n?"on":"")+'" onclick="rt('+j+","+i+","+n+')">'+n+"</button>"}).join("")+"</div></td>";
+    }).join("")+"</tr>";
+  });
+  h+="<tr><td><b>Total</b></td>"+enemies.map(function(e){return"<td><b>"+e.r.reduce(function(a,b){return a+b},0)+"</b></td>"}).join("")+"</tr></table></div></div>";
+  return h;
+}
+function rt(j,i,n){enemies[j].r[i]=n;sv("enemies",enemies);render()}
+function rn(kind,i){
+  var cur=kind?enemies[i].n:players[i],v=prompt("Nouveau nom",cur);
+  if(v===null||!v.trim())return;
+  if(kind){enemies[i].n=v.trim();sv("enemies",enemies)}else{players[i]=v.trim();sv("players",players)}
+  render();
+}
+
+render();
+load().then(render);
+if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+</script>
+</body>
+</html>
