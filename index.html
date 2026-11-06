@@ -56,6 +56,7 @@ a.art img{width:100%;height:96px;object-fit:cover;display:block}
 .ago{font-size:12px;font-weight:700;color:var(--ac);padding:6px 10px 10px}
 .nlinks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:8px 0}.nlinks span{font:800 13px/1 Impact,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ac);margin-right:4px}.nlinks a{background:var(--card);border:1px solid var(--bd);color:var(--tx);text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px}.nlinks a:hover{border-color:var(--ac);color:var(--ac)}
 .nmore{display:block;text-align:center;text-decoration:none;margin:0 0 6px}
+@media (max-width:520px){.evt th:first-child,.evt td:first-child{width:74px;min-width:74px;max-width:74px;white-space:normal;overflow-wrap:anywhere;font-size:12px;padding:6px 4px}.evt td:first-child select{min-width:0!important;width:100%;font-size:11px;padding:4px 2px;margin-top:3px!important}.evt td:first-child .sub{font-size:10px}.evt th:not(:first-child),.evt td:not(:first-child){padding-left:6px;padding-right:6px}}
 @media (max-width:520px){.ngrid{gap:7px}.at{font-size:12.5px;padding:8px 8px 2px}.ad,.as,.ago{padding-left:8px;padding-right:8px}.as{display:none}.ntitle{font-size:26px}.nlogo{width:56px;height:56px}a.art img{height:70px}}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap;vertical-align:top}
@@ -528,7 +529,7 @@ function vp(){
   }
   var n=ev.matches||5,R=Math.max(1,Math.min(10,ev.rounds||1)),rr=Math.min(priRound,R-1),base=rr*12;
   var tabs=R>1?'<label class="mut">Manche</label><select onchange="prsel(+this.value)" style="margin-bottom:8px">'+Array.apply(null,Array(R)).map(function(_,q){return'<option value="'+q+'"'+(q===rr?" selected":"")+">Manche "+(q+1)+" sur "+R+"</option>"}).join("")+"</select>":"";
-  h+='<div class="card">'+tabs+'<div class="warn">'+(R>1?"Manche "+(rr+1)+" : ":"")+'Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, rouge foncé) à 5 (le plus à l’aise, vert clair). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
+  h+='<div class="card">'+tabs+'<div class="warn">'+(R>1?"Manche "+(rr+1)+" : ":"")+'Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, rouge foncé) à 5 (le plus à l’aise, vert clair). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table class="evt"><tr><th>Joueur</th>';
   for(var j=0;j<n;j++){
     var e=ev.en[base+j]||{};
     h+="<th>"+(mgr?'<select onchange="pen('+(base+j)+',\'f\',this.value)" style="display:block;width:100%;margin:0 0 4px;min-width:150px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+(base+j)+',\'d\',this.value)" style="display:block;width:100%;margin:0;min-width:150px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Adversaire '+(j+1)+"</div></th>";
@@ -808,7 +809,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v30</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v31</div></div>':"");
 }
 function pendingCount(){
   var n=0;
