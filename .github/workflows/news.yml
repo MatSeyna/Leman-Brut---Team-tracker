@@ -1,0 +1,39 @@
+name: News refresh
+
+on:
+  schedule:
+    - cron: "41 */12 * * *"   # twice a day
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-stats
+  cancel-in-progress: false
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4
+      - name: Fetch latest 40k articles
+        run: python scripts/scrape_news.py
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "leman-brut-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/news.json
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "News $(date -u +%F-%H)"
+            git pull --rebase origin main || true
+            git push
+          fi
