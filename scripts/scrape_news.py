@@ -76,7 +76,7 @@ def iso(s):
 def goonhammer():
     ns = {"c": "http://purl.org/rss/1.0/modules/content/", "m": "http://search.yahoo.com/mrss/"}
     items = []
-    for page in (1, 2, 3):
+    for page in range(1, 7):
         url = "https://www.goonhammer.com/feed/" + ("?paged=%d" % page if page > 1 else "")
         try:
             root = ET.fromstring(get(url).content)
@@ -158,7 +158,7 @@ def wcfr():
     if not uniq:
         raise RuntimeError("no article link found on Warhammer Community FR")
     items = []
-    for u in uniq[:30]:
+    for u in uniq[:40]:
         try:
             soup = BeautifulSoup(get(u).text, "html.parser")
         except Exception as exc:
@@ -172,7 +172,7 @@ def wcfr():
         jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
         hay = " ".join([title, desc, tags, kw, jl, u])
         slug = u.rsplit("/", 2)[-2].replace("-", " ")
-        if not (K40.search(hay) or FACT.search(title + " " + slug)):
+        if not (K40.search(title + " " + u) or FACT.search(title + " " + slug)):
             continue
         d = iso(meta(soup, "article:published_time", "og:article:published_time") or "")
         if not d:
