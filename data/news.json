@@ -1,11 +1,11 @@
 {
- "fetched_at": "2026-11-06T20:28:43+00:00",
+ "fetched_at": "2026-11-06T20:29:28+00:00",
  "goonhammer": [
   {
-   "title": "The 40k Player's Guide to BattleTech",
-   "url": "https://www.tabletopbattles.com/the-40k-players-guide-to-battletech/",
-   "date": "2026-11-06T17:00:44+00:00",
-   "summary": "Today in BattleTech, something a little different: Jake Dardzinski, a competitive 40K player, talks about how he got into BattleTech, and other 40K players can too.",
+   "title": "[40k] Competitive Innovations Editorial: How is 11th Edition Going?",
+   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-editorial-how-is-11th-edition-going/",
+   "date": "2026-11-06T16:00:23+00:00",
+   "summary": "No CI today, so instead our competitive leading lights have gotten together to talk about how 11th Edition of Warhammer 40K is going so far. Split room!",
    "image": null
   },
   {
@@ -45,5 +45,6 @@
    "summary": "",
    "image": "https://assets.warhammer-community.com/feature_generic2024-(1).jpg"
   }
- ]
+ ],
+ "wcfr_error": "name 'crumbs' is not defined"
 }
