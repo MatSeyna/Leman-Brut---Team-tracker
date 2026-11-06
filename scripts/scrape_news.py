@@ -91,7 +91,7 @@ def goonhammer():
             body = it.findtext("c:encoded", namespaces=ns) or ""
             desc = it.findtext("description") or ""
             hay = " ".join([title, link] + cats)
-            if not K40.search(hay):
+            if not K40.search(hay) or re.search(r"battletech|age of sigmar|old world", title, re.I):
                 continue
             img = None
             mc = it.find("m:content", ns) or it.find("m:thumbnail", ns)
@@ -167,7 +167,8 @@ def wcfr():
         desc = meta(soup, "og:description", "description") or ""
         tags = " ".join(t.get("content", "") for t in soup.find_all("meta", attrs={"property": "article:tag"}))
         kw = meta(soup, "keywords") or ""
-        crumbs = " ".join(a.get_text(" ", strip=True) for a in soup.select("a[href*='/fr-fr/']")[:60])
+        jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
+        print("DBG", u[-60:], "| tags:", tags[:80], "| kw:", kw[:100], "| jl:", jl[:100], "| title:", title[:50])
         hay = " ".join([title, desc, tags, kw, u])
         if not (K40.search(hay) or re.search(r"Warhammer 40[\s,.  ]*000", crumbs)):
             continue
