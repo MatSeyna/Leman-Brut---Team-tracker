@@ -478,7 +478,7 @@ function vp(){
   h+='<div class="card"><div class="warn">Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
   for(var j=0;j<n;j++){
     var e=ev.en[j]||{};
-    h+="<th>"+(mgr?'<select onchange="pen('+j+',\'f\',this.value)" style="margin:0 0 4px;min-width:120px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+j+',\'d\',this.value)" style="margin:0;min-width:120px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Match '+(j+1)+"</div></th>";
+    h+="<th>"+(mgr?'<select onchange="pen('+j+',\'f\',this.value)" style="display:block;width:100%;margin:0 0 4px;min-width:150px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+j+',\'d\',this.value)" style="display:block;width:100%;margin:0;min-width:150px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Match '+(j+1)+"</div></th>";
   }
   h+="</tr>";
   ev.parts.forEach(function(p){
@@ -721,7 +721,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v19</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v20</div></div>':"");
 }
 function pendingCount(){
   var n=0;
