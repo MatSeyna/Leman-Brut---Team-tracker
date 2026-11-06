@@ -746,7 +746,7 @@ function syncNow(){
   .then(function(changed){sbBusy=false;sbSet("ok");var a=document.activeElement;if(changed&&!(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName)))render()})
   .catch(function(e){sbBusy=false;sbSet("err");window.lastSyncError=String(e.message||e)});
 }
-function pwf(ph,ac){return'<div class="pw"><input id="aw" type="password" placeholder="'+ph+'" autocomplete="'+ac+'"><button type="button" class="eye" onclick="pwt(this)" aria-label="Afficher le mot de passe">👁</button></div>'}
+function pwf(ph,ac){return'<div class="pw"><input id="aw" type="password" placeholder="'+ph+'" autocomplete="'+ac+'" onkeydown="aenter(event)"><button type="button" class="eye" onclick="pwt(this)" aria-label="Afficher le mot de passe">👁</button></div>'}
 function pwt(b){var i=b.parentNode.querySelector("input"),s=i.type==="password";i.type=s?"text":"password";b.textContent=s?"🙈":"👁";b.setAttribute("aria-label",s?"Masquer le mot de passe":"Afficher le mot de passe")}
 function fld(id,ph,type){return'<input id="'+id+'" placeholder="'+ph+'"'+(type?' type="'+type+'"':"")+' autocomplete="'+(type==="password"?"current-password":"off")+'">'}
 function vs(){
@@ -759,7 +759,7 @@ function vs(){
   if(!AS){
     var su=amode==="signup";
     h+='<div class="card fm"><div class="chips"><button class="chip'+(su?"":" on")+'" onclick="amd(\'login\')">Connexion</button><button class="chip'+(su?" on":"")+'" onclick="amd(\'signup\')">Créer un compte</button></div>'+
-    '<input id="ae" type="email" placeholder="Adresse e-mail" autocomplete="email">'+(su?fld("ap","Pseudo"):"")+''+pwf("Mot de passe (8 caractères minimum)",su?"new-password":"current-password")+''+
+    '<input id="ae" type="email" placeholder="Adresse e-mail" autocomplete="email" value="'+esc(ADR.e)+'" oninput="ADR.e=this.value" onkeydown="aenter(event)">'+(su?'<input id="ap" placeholder="Pseudo" autocomplete="off" value="'+esc(ADR.p)+'" oninput="ADR.p=this.value" onkeydown="aenter(event)">':"")+''+pwf("Mot de passe (8 caractères minimum)",su?"new-password":"current-password")+''+
     '<button class="btn" onclick="'+(su?"asign()":"alog()")+'"'+(abusy?" disabled":"")+">"+(su?"Créer mon compte":"Se connecter")+'</button>'+(su?'<div class="warn">Tu recevras un e-mail pour confirmer ton adresse. Ensuite, l’administrateur doit valider ton compte avant que tu puisses rejoindre une équipe.</div>':'<button class="btn g" onclick="arec()">Mot de passe oublié</button>')+"</div>";
     return h;
   }
@@ -812,7 +812,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v33</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v34</div></div>':"");
 }
 function noTeam(){var P=AU.profile;return !!(CFG&&AS&&P&&P.approved&&!P.is_admin&&!AU.mem.some(function(m){return m.status==="active"}))}
 function teamBanner(){
@@ -864,6 +864,8 @@ function ssetup(){
   if(!/^https:\/\/.+/.test(u)||!k){alert("Renseigne l’URL (https://…) et la clé.");return}
   CFG={url:u,key:k};sv("sbcfg",CFG);render();
 }
+var ADR={e:"",p:""};
+function aenter(ev){if(ev.key==='Enter'&&!abusy){ev.preventDefault();if(amode==='signup')asign();else alog()}}
 function amd(m){amode=m;aerr="";ainfo="";render()}
 function ab(fn){abusy=true;aerr="";ainfo="";render();return fn().catch(function(e){aerr=String(e.message||e)}).then(function(){abusy=false;render()})}
 function alog(){
