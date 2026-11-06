@@ -432,8 +432,8 @@ function eedit(id){
 
 /* ---------- événements : participants, adversaires, ressenti ---------- */
 var priEv=ld("priev",""),priForm=false,priRound=0;
-function rc(v){var t=(v-1)/4;return"hsl("+Math.round(115-t*115)+","+Math.round(55+t*15)+"%,"+Math.round(68-t*36)+"%)"}
-function rtx(v){return v>=4?"#fff":"#111"}
+function rc(v){var t=(5-v)/4;return"hsl("+Math.round(115-t*115)+","+Math.round(55+t*15)+"%,"+Math.round(68-t*36)+"%)"}
+function rtx(v){return v<=2?"#fff":"#111"}
 function facWR(a,b){
   var w=DATA&&DATA.windows&&DATA.windows.quarter;if(!w||!a||!b)return null;
   var f=w.factions.filter(function(x){return x.name===a})[0];if(!f)return null;
@@ -477,7 +477,7 @@ function vp(){
   }
   var n=ev.matches||5,R=Math.max(1,Math.min(10,ev.rounds||1)),rr=Math.min(priRound,R-1),base=rr*12;
   var tabs=R>1?'<label class="mut">Manche</label><select onchange="prsel(+this.value)" style="margin-bottom:8px">'+Array.apply(null,Array(R)).map(function(_,q){return'<option value="'+q+'"'+(q===rr?" selected":"")+">Manche "+(q+1)+" sur "+R+"</option>"}).join("")+"</select>":"";
-  h+='<div class="card">'+tabs+'<div class="warn">'+(R>1?"Manche "+(rr+1)+" : ":"")+'Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
+  h+='<div class="card">'+tabs+'<div class="warn">'+(R>1?"Manche "+(rr+1)+" : ":"")+'Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, rouge foncé) à 5 (le plus à l’aise, vert clair). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
   for(var j=0;j<n;j++){
     var e=ev.en[base+j]||{};
     h+="<th>"+(mgr?'<select onchange="pen('+(base+j)+',\'f\',this.value)" style="display:block;width:100%;margin:0 0 4px;min-width:150px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+(base+j)+',\'d\',this.value)" style="display:block;width:100%;margin:0;min-width:150px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Adversaire '+(j+1)+"</div></th>";
@@ -494,11 +494,11 @@ function vp(){
     }
     h+="</tr>";
   });
-  h+='<tr><td><b>Qui veut jouer</b><div class="sub">du plus bas au plus haut</div></td>';
+  h+='<tr><td><b>Qui veut jouer</b><div class="sub">du plus haut au plus bas</div></td>';
   for(var j3=0;j3<n;j3++){
     var rk=[];
     ev.parts.forEach(function(p){var v=(LB.rates[ev.id+"|"+(base+j3)+"|"+p.uid]||{}).v||0;if(v)rk.push({v:v,n:pnm(p.uid,p.pseudo)})});
-    rk.sort(function(a,b){return a.v-b.v||a.n.localeCompare(b.n)});
+    rk.sort(function(a,b){return b.v-a.v||a.n.localeCompare(b.n)});
     h+="<td>"+(rk.length?rk.map(function(x){return'<div class="rk"><span class="cell" style="background:'+rc(x.v)+";color:"+rtx(x.v)+'">'+x.v+"</span> "+esc(x.n)+"</div>"}).join(""):'<span class="mut">—</span>')+"</td>";
   }
   return h+"</tr></table></div></div>";
@@ -730,7 +730,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v22</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v23</div></div>':"");
 }
 function pendingCount(){
   var n=0;
