@@ -54,6 +54,7 @@ a.art img{width:100%;height:96px;object-fit:cover;display:block}
 .ad{font-size:11px;color:var(--ac);padding:0 10px}
 .as{font-size:12px;color:var(--mut);padding:4px 10px 0}
 .ago{font-size:12px;font-weight:700;color:var(--ac);padding:6px 10px 10px}
+.nlinks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:8px 0}.nlinks span{font:800 13px/1 Impact,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ac);margin-right:4px}.nlinks a{background:var(--card);border:1px solid var(--bd);color:var(--tx);text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px}.nlinks a:hover{border-color:var(--ac);color:var(--ac)}
 .nmore{display:block;text-align:center;text-decoration:none;margin:0 0 6px}
 @media (max-width:520px){.ngrid{gap:7px}.at{font-size:12.5px;padding:8px 8px 2px}.ad,.as,.ago{padding-left:8px;padding-right:8px}.as{display:none}.ntitle{font-size:26px}.nlogo{width:56px;height:56px}a.art img{height:70px}}
 table{border-collapse:collapse;width:100%;font-size:13px}
@@ -220,6 +221,7 @@ function vn(){
     '<div class="nstrip">'+THEMES.map(function(x){return'<button class="'+(x.id===t.id?"on":"")+'" title="'+esc(x.name)+'" onclick="nTheme(\''+x.id+'\')" style="background-image:url('+x.img+')"></button>'}).join("")+"</div>"+
     '<div class="ngrid">'+ncol("Goonhammer","Compétitif · en anglais · 40k",n.goonhammer,"https://www.goonhammer.com/category/40k/",n.goonhammer_error)+
     ncol("Warhammer Community","Officiel · en français · 40k",n.wcfr,"https://www.warhammer-community.com/fr-fr/",n.wcfr_error)+"</div>"+
+    '<div class="nlinks"><span>Liens utiles</span>'+[["Wahapedia","https://wahapedia.ru/"],["Best Coast Pairings","https://www.bestcoastpairings.com"],["Lexicanum","https://wh40k.lexicanum.com"],["MiniHeadQuarters","https://miniheadquarters.com"],["40k-analytics","https://40k-analytics.github.io/stateofthegame/"]].map(function(l){return'<a href="'+l[1]+'" target="_blank" rel="noopener">'+l[0]+"</a>"}).join("")+"</div>"+
     '<div class="mut" style="text-align:center;margin-top:4px">'+(n.fetched_at?"Articles mis à jour le "+esc(new Date(n.fetched_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}))+" · toutes les 12 heures":"Les articles apparaîtront après la première mise à jour automatique.")+"</div>";
   return h;
 }
@@ -806,7 +808,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v29</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v30</div></div>':"");
 }
 function pendingCount(){
   var n=0;
