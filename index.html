@@ -38,6 +38,24 @@ header::after{content:"";display:block;height:8px;margin-top:10px;background:rep
 main{padding:8px 12px 40px;max-width:980px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--ac2);border-radius:10px;padding:12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .scroll{overflow-x:auto}
+.nhero{display:flex;align-items:flex-end;gap:14px;min-height:190px;padding:16px;border-radius:12px;border:1px solid var(--bd);border-bottom:3px solid var(--ac2);background-size:cover;margin-bottom:10px;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+.nlogo{width:72px;height:72px;border-radius:16px;border:2px solid var(--ac);box-shadow:0 0 18px rgba(var(--acrgb),.45);flex:none}
+.ntitle{font:800 34px/1 Impact,"Arial Narrow Bold","Haettenschweiler",sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--ac);text-shadow:0 0 16px rgba(var(--acrgb),.5),0 2px 0 #000}
+.ntag{font-size:13px;color:var(--tx);text-shadow:0 1px 3px #000;margin-top:4px}
+.nstrip{display:flex;gap:6px;margin-bottom:12px}
+.nstrip button{flex:1;height:44px;border-radius:8px;border:2px solid var(--bd);background-size:cover;background-position:center;opacity:.65;padding:0}
+.nstrip button.on{border-color:var(--ac);opacity:1;box-shadow:0 0 10px rgba(var(--acrgb),.5)}
+.ngrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.ncol h3{margin:0;font:800 17px/1.1 Impact,"Arial Narrow Bold",sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ac)}
+.nsub{margin:2px 0 8px}
+a.art{display:block;color:var(--tx);text-decoration:none;padding:0;overflow:hidden}
+a.art img{width:100%;height:96px;object-fit:cover;display:block}
+.at{font-weight:700;font-size:14px;line-height:1.25;padding:10px 10px 2px}
+.ad{font-size:11px;color:var(--ac);padding:0 10px}
+.as{font-size:12px;color:var(--mut);padding:4px 10px 0}
+.ago{font-size:12px;font-weight:700;color:var(--ac);padding:6px 10px 10px}
+.nmore{display:block;text-align:center;text-decoration:none;margin:0 0 6px}
+@media (max-width:520px){.ngrid{gap:7px}.at{font-size:12.5px;padding:8px 8px 2px}.ad,.as,.ago{padding-left:8px;padding-right:8px}.as{display:none}.ntitle{font-size:26px}.nlogo{width:56px;height:56px}a.art img{height:70px}}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--bd);white-space:nowrap;vertical-align:top}
 th{color:var(--ac);font-weight:600}
@@ -125,8 +143,8 @@ try{
 <script>
 "use strict";
 var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
-var DATA=null,TREND={},LOADERR="",ANA=null,anaView="season";
-var tab=ld("tab","w"),win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
+var DATA=null,TREND={},LOADERR="",ANA=null,anaView="season",NEWS=null;
+var tab="n",win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
 function ld(k,d){try{var s=localStorage.getItem("lb_"+k);return s===null?d:JSON.parse(s)}catch(e){return d}}
 function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v));return true}catch(e){return false}}
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
@@ -140,7 +158,7 @@ var notes=ld("notes",{who:"Équipe",r:{}});
 /* ---------- données ---------- */
 function load(){
   var j=function(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" : HTTP "+r.status);return r.json()})};
-  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}}),j("data/analytics.json").catch(function(){return null})]).then(function(a){DATA=a[0];TREND=a[1]||{};ANA=a[2]}).catch(function(e){LOADERR=String(e.message||e)});
+  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}}),j("data/analytics.json").catch(function(){return null}),j("data/news.json").catch(function(){return null})]).then(function(a){DATA=a[0];TREND=a[1]||{};ANA=a[2];NEWS=a[3]}).catch(function(e){LOADERR=String(e.message||e)});
 }
 function W(){return DATA&&DATA.windows&&DATA.windows[win]}
 function status(){
@@ -162,7 +180,7 @@ function delta(id){
 }
 
 /* ---------- navigation ---------- */
-var T=[["w","Win rates"],["m","Matchups"],["d","Dispositions"],["p","Événements"]];
+var T=[["n","News"],["w","Win rates"],["m","Matchups"],["d","Dispositions"],["p","Événements"]];
 function nav(){
   var ac=document.getElementById("acct");if(ac)ac.innerHTML=acctHtml();
   document.getElementById("tabs").innerHTML=T.map(function(t){return'<button class="'+(tab===t[0]?"on":"")+'" onclick="go(\''+t[0]+'\')">'+t[1]+"</button>"}).join("");
@@ -177,11 +195,35 @@ function render(){
   nav();status();sbSet(sbstate);
   var v=document.getElementById("v");
   var keep=lastTab===tab,px=window.pageXOffset,py=window.pageYOffset,sc=keep?[].map.call(v.querySelectorAll(".scroll"),function(e){return[e.scrollLeft,e.scrollTop]}):[];
-  v.innerHTML=tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():tab==="s"?vs():vp();
+  v.innerHTML=tab==="n"?vn():tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():tab==="s"?vs():vp();
   if(keep){[].forEach.call(v.querySelectorAll(".scroll"),function(e,i){if(sc[i]){e.scrollLeft=sc[i][0];e.scrollTop=sc[i][1]}});window.scrollTo(px,py)}
   lastTab=tab;
 }
 var lastTab="";
+
+/* ---------- news (page d'accueil) ---------- */
+function curTheme(){var id="ork";try{id=JSON.parse(localStorage.getItem("lb_theme"))||"ork"}catch(e){}return themeById(id)}
+function ndate(s){if(!s)return"";var d=new Date(s);return isNaN(d)?"":d.toLocaleDateString("fr-FR",{day:"numeric",month:"long"})}
+function ncol(title,sub,items,home,err){
+  var h='<div class="ncol"><h3>'+title+'</h3><div class="mut nsub">'+sub+"</div>";
+  if(!items||!items.length)h+='<div class="card mut">Pas encore d’articles'+(err?" ("+esc(err)+")":"")+'.</div>';
+  else items.forEach(function(a){
+    h+='<a class="card art" href="'+esc(a.url)+'" target="_blank" rel="noopener">'+(a.image?'<img loading="lazy" alt="" src="'+esc(a.image)+'">':"")+
+      '<div class="at">'+esc(a.title)+'</div><div class="ad">'+esc(ndate(a.date))+"</div>"+(a.summary?'<div class="as">'+esc(a.summary)+"</div>":"")+'<div class="ago">Lire l’article →</div></a>';
+  });
+  return h+'<a class="btn g nmore" href="'+home+'" target="_blank" rel="noopener">Voir tout le site →</a></div>';
+}
+function vn(){
+  var t=curTheme(),n=NEWS||{};
+  var h='<section class="nhero" style="background-image:linear-gradient(180deg,rgba(var(--bgrgb),.15),rgba(var(--bgrgb),.9)),url('+t.img+');background-position:'+t.pos+'"><img class="nlogo" src="icon-192.png" alt="">'+
+    '<div><div class="ntitle">Leman Brut</div><div class="ntag">Équipe Warhammer 40,000 · '+esc(t.name)+'</div></div></section>'+
+    '<div class="nstrip">'+THEMES.map(function(x){return'<button class="'+(x.id===t.id?"on":"")+'" title="'+esc(x.name)+'" onclick="nTheme(\''+x.id+'\')" style="background-image:url('+x.img+')"></button>'}).join("")+"</div>"+
+    '<div class="ngrid">'+ncol("Goonhammer","Compétitif · en anglais · 40k",n.goonhammer,"https://www.goonhammer.com/category/40k/",n.goonhammer_error)+
+    ncol("Warhammer Community","Officiel · en français · 40k",n.wcfr,"https://www.warhammer-community.com/fr-fr/",n.wcfr_error)+"</div>"+
+    '<div class="mut" style="text-align:center;margin-top:4px">'+(n.fetched_at?"Articles mis à jour le "+esc(new Date(n.fetched_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}))+" · toutes les 12 heures":"Les articles apparaîtront après la première mise à jour automatique.")+"</div>";
+  return h;
+}
+function nTheme(id){applyTheme(id);try{localStorage.setItem("lb_theme",JSON.stringify(id))}catch(e){}render()}
 
 /* ---------- win rates ---------- */
 function lowM(){return{week:2,month:5,quarter:7}[win]||7}
@@ -764,7 +806,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v28</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v29</div></div>':"");
 }
 function pendingCount(){
   var n=0;
