@@ -25,6 +25,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "news.json"
 N = 3
 K40 = re.compile(r"40[\s,.  -]*0{3}|40k|40-?000|\bw40k\b", re.I)
+FACT = re.compile(r"\b(astartes|space marines?|necrons?|orks?|tyranids?|genestealer|aeldari|drukhari|t.au|death guard|custodes|adepta|astra militarum|votann|grey knights|world eaters|thousand sons|chaos (space|knights|daemons)|imperial knights|codex|kill team|primaris|warhammer 40)\b", re.I)
 WC = "https://www.warhammer-community.com"
 _robots = {}
 
@@ -169,20 +170,16 @@ def wcfr():
         tags = " ".join(t.get("content", "") for t in soup.find_all("meta", attrs={"property": "article:tag"}))
         kw = meta(soup, "keywords") or ""
         jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
-        hrefs = sorted({a["href"] for a in soup.find_all("a", href=True) if "/fr-fr/" in a["href"] and "/articles/" not in a["href"]})
         hay = " ".join([title, desc, tags, kw, jl, u])
-        print("DBG", u[-60:], "| tags:", tags[:80], "| kw:", kw[:100], "| jl:", jl[:100], "| title:", title[:50])
-        raw = str(soup)
-        print("DBGL", u[-40:], hrefs)
-        print("DBGR", u[-40:], re.findall(r'"(?:categor\w*|topics?|games?|tags?|gameSystem\w*)"\s*:\s*[^,]{0,90}', raw)[:6], re.findall(r".{40}Warhammer 40.{40}", raw)[:3])
-        if False and not K40.search(hay):
+        slug = u.rsplit("/", 2)[-2].replace("-", " ")
+        if not (K40.search(hay) or FACT.search(title + " " + slug)):
             continue
         d = iso(meta(soup, "article:published_time", "og:article:published_time") or "")
         if not d:
             m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', str(soup))
             d = iso(m.group(1)) if m else None
         items.append({"title": title, "url": u, "date": d, "summary": clean(desc), "image": meta(soup, "og:image")})
-        if len(items) >= 9:  # a few spare, then sort by date
+        if len(items) >= 6:  # a few spare, then sort by date
             break
     if not items:
         raise RuntimeError("no 40k article found on Warhammer Community FR")
