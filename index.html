@@ -180,6 +180,7 @@ function render(){
 }
 
 /* ---------- win rates ---------- */
+function lowM(){return{week:2,month:5,quarter:7}[win]||7}
 function lowN(){return{week:5,month:15,quarter:30}[win]||30}
 function vw(){
   var w=W();if(!w)return noData();
@@ -208,9 +209,9 @@ function vm(){
   var rows=(w.matchups[String(mFac)]||[]).slice();
   rows.sort(mSort==="win_rate"?function(a,b){return(b.win_rate||0)-(a.win_rate||0)}:function(a,b){return b.games-a.games});
   var h='<div class="card"><select onchange="mf(this.value)">'+fs.map(function(f){return'<option value="'+f.id+'"'+(String(f.id)===String(mFac)?" selected":"")+">"+esc(f.name)+"</option>"}).join("")+
-  '</select><div class="warn">'+esc(w.label)+' · win rate de l’armée choisie contre chaque adversaire. Peu de parties = grisé (moins de 10). Trie par : <button class="btn g" onclick="ms(\'games\')">parties</button><button class="btn g" onclick="ms(\'win_rate\')">victoires</button></div><div class="scroll"><table><tr><th>Adversaire</th><th>Victoires %</th><th>Parties</th><th>Intervalle</th></tr>';
+  '</select><div class="warn">'+esc(w.label)+' · win rate de l’armée choisie contre chaque adversaire. Peu de parties = grisé (moins de ' +lowM()+ ' parties sur cette période ; seuils : 2 sur 1 semaine, 5 sur 1 mois, 7 sur 3 mois). Trie par : <button class="btn g" onclick="ms(\'games\')">parties</button><button class="btn g" onclick="ms(\'win_rate\')">victoires</button></div><div class="scroll"><table><tr><th>Adversaire</th><th>Victoires %</th><th>Parties</th><th>Intervalle</th></tr>';
   rows.forEach(function(x){
-    h+='<tr class="'+(x.games<10?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span></td><td>"+x.games+"</td><td>"+(x.low!=null?x.low+" – "+x.high:"–")+"</td></tr>";
+    h+='<tr class="'+(x.games<lowM()?"low":"")+'"><td>'+esc(x.name)+'</td><td><span class="cell" style="background:'+(x.win_rate==null?"var(--bd)":col(x.win_rate))+'">'+pc(x.win_rate)+"</span></td><td>"+x.games+"</td><td>"+(x.low!=null?x.low+" – "+x.high:"–")+"</td></tr>";
   });
   return h+"</table></div></div>";
 }
@@ -759,7 +760,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v26</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v27</div></div>':"");
 }
 function pendingCount(){
   var n=0;
