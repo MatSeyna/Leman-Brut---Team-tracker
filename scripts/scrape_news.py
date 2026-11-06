@@ -170,10 +170,12 @@ def wcfr():
         kw = meta(soup, "keywords") or ""
         jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
         hrefs = sorted({a["href"] for a in soup.find_all("a", href=True) if "/fr-fr/" in a["href"] and "/articles/" not in a["href"]})
-        print("DBGL", u[-40:], hrefs)
+        hay = " ".join([title, desc, tags, kw, jl, u])
         print("DBG", u[-60:], "| tags:", tags[:80], "| kw:", kw[:100], "| jl:", jl[:100], "| title:", title[:50])
-        hay = " ".join([title, desc, tags, kw, u])
-        if not (K40.search(hay) or re.search(r"Warhammer 40[\s,.  ]*000", crumbs)):
+        raw = str(soup)
+        print("DBGL", u[-40:], hrefs)
+        print("DBGR", u[-40:], re.findall(r'"(?:categor\w*|topics?|games?|tags?|gameSystem\w*)"\s*:\s*[^,]{0,90}', raw)[:6], re.findall(r".{40}Warhammer 40.{40}", raw)[:3])
+        if False and not K40.search(hay):
             continue
         d = iso(meta(soup, "article:published_time", "og:article:published_time") or "")
         if not d:
