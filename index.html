@@ -55,6 +55,7 @@ a.art img{width:100%;height:96px;object-fit:cover;display:block}
 .as{font-size:12px;color:var(--mut);padding:4px 10px 0}
 .ago{font-size:12px;font-weight:700;color:var(--ac);padding:6px 10px 10px}
 .nlinks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:8px 0}.nlinks span{font:800 13px/1 Impact,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ac);margin-right:4px}.nlinks a{background:var(--card);border:1px solid var(--bd);color:var(--tx);text-decoration:none;font-size:13px;font-weight:600;padding:7px 12px;border-radius:999px}.nlinks a:hover{border-color:var(--ac);color:var(--ac)}
+.tbn{display:flex;gap:10px;align-items:center;justify-content:space-between;background:rgba(var(--acrgb),.16);border:1px solid var(--ac);border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:13px}.tbn a{color:var(--ac);font-weight:800}.tbn button{background:transparent;border:0;color:var(--mut);font-size:16px;padding:2px 6px}
 .nmore{display:block;text-align:center;text-decoration:none;margin:0 0 6px}
 @media (max-width:520px){.evt th:first-child,.evt td:first-child{width:74px;min-width:74px;max-width:74px;white-space:normal;overflow-wrap:anywhere;font-size:12px;padding:6px 4px}.evt td:first-child select{min-width:0!important;width:100%;font-size:11px;padding:4px 2px;margin-top:3px!important}.evt td:first-child .sub{font-size:10px}.evt th:not(:first-child),.evt td:not(:first-child){padding-left:6px;padding-right:6px;width:calc(100vw - 128px);min-width:calc(100vw - 128px);max-width:calc(100vw - 128px);white-space:normal;scroll-snap-align:end}.evt th:not(:first-child) select,.evt td:not(:first-child) select{min-width:0!important;width:100%}.evt .vs,.evt .rk{white-space:normal}.evt .sc input{width:56px!important}.scroll:has(.evt){scroll-snap-type:x mandatory}}
 @media (max-width:520px){.ngrid{gap:7px}.at{font-size:12.5px;padding:8px 8px 2px}.ad,.as,.ago{padding-left:8px;padding-right:8px}.as{display:none}.ntitle{font-size:26px}.nlogo{width:56px;height:56px}a.art img{height:70px}}
@@ -197,7 +198,7 @@ function render(){
   nav();status();sbSet(sbstate);
   var v=document.getElementById("v");
   var keep=lastTab===tab,px=window.pageXOffset,py=window.pageYOffset,sc=keep?[].map.call(v.querySelectorAll(".scroll"),function(e){return[e.scrollLeft,e.scrollTop]}):[];
-  v.innerHTML=tab==="n"?vn():tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():tab==="s"?vs():vp();
+  v.innerHTML=teamBanner()+(tab==="n"?vn():tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():tab==="s"?vs():vp());
   if(keep){[].forEach.call(v.querySelectorAll(".scroll"),function(e,i){if(sc[i]){e.scrollLeft=sc[i][0];e.scrollTop=sc[i][1]}});window.scrollTo(px,py)}
   lastTab=tab;
 }
@@ -780,11 +781,13 @@ function vs(){
   h+="</div>";
   var pend=AU.mem.filter(function(m){return m.status==="pending"});
   var others=AU.teams.filter(function(t){return !P.is_admin&&!AU.mem.some(function(m){return m.team_id===t.id})});
-  h+='<div class="card fm"><b>Créer une équipe</b>'+fld("tn","Nom de l’équipe")+'<button class="btn" onclick="atc()">Créer</button></div>';
+  var joinH="";
   if(others.length||pend.length){
-    h+='<div class="card"><b>Rejoindre une équipe</b>'+others.map(function(t){return'<div class="army" style="margin-top:6px"><span>'+esc(t.name)+'</span><button class="btn g sm" onclick="ajoin(\''+t.id+'\')">Demander</button></div>'}).join("")+
+    joinH='<div class="card"><b>Rejoindre une équipe</b>'+others.map(function(t){return'<div class="army" style="margin-top:6px"><span>'+esc(t.name)+'</span><button class="btn g sm" onclick="ajoin(\''+t.id+'\')">Demander</button></div>'}).join("")+
     pend.map(function(m){var t=AU.teams.filter(function(x){return x.id===m.team_id})[0];return'<div class="army mut" style="margin-top:6px"><span>'+esc(t?t.name:"?")+'</span><span>demande en attente…</span></div>'}).join("")+"</div>";
   }
+  var createH='<div class="card fm"><b>Créer une équipe</b>'+fld("tn","Nom de l’équipe")+'<button class="btn" onclick="atc()">Créer</button></div>';
+  h+=mine.length?createH+joinH:joinH+createH;
   if(CUR&&ready()){
     var canM=myRole(CUR)==="owner"||myRole(CUR)==="captain"||myRole(CUR)==="admin";
     var pn=MEMB.filter(function(m){return m.status==="pending"}),ac=MEMB.filter(function(m){return m.status==="active"});
@@ -809,8 +812,15 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v31</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v32</div></div>':"");
 }
+function noTeam(){var P=AU.profile;return !!(CFG&&AS&&P&&P.approved&&!P.is_admin&&!AU.mem.some(function(m){return m.status==="active"}))}
+function teamBanner(){
+  if(!noTeam()||tab==="s"&&svw==="team"||sessionStorage.getItem("lb_nobanner"))return"";
+  var pend=AU.mem.some(function(m){return m.status==="pending"});
+  return'<div class="tbn"><span>'+(pend?"⏳ Ta demande pour rejoindre une équipe est en attente de validation. ":"🛡 Tu n’as pas encore d’équipe. ")+'<a href="#" onclick="ateamv();return false">'+(pend?"Voir mes demandes":"Rejoins-en une ou crées-en une →")+'</a></span><button onclick="nobanner()" aria-label="Fermer">✕</button></div>';
+}
+function nobanner(){try{sessionStorage.setItem("lb_nobanner","1")}catch(e){}render()}
 function pendingCount(){
   var n=0;
   if(AU.profile&&AU.profile.is_admin)n+=ACCS.filter(function(a){return !a.approved&&!a.is_admin}).length;
