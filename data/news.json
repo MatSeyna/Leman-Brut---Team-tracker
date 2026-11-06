@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-06T20:30:32+00:00",
+ "fetched_at": "2026-11-06T20:31:13+00:00",
  "goonhammer": [
   {
    "title": "[40k] Competitive Innovations Editorial: How is 11th Edition Going?",
@@ -18,6 +18,13 @@
  ],
  "wcfr": [
   {
+   "title": "De nouvelles boîtes de Groupe de Combat pour Horus Heresy",
+   "url": "https://www.warhammer-community.com/fr-fr/articles/nuc8rzsm/de-nouvelles-boites-de-groupe-de-combat-pour-horus-heresy/",
+   "date": "2026-11-02T00:00:00+00:00",
+   "summary": "Forgez votre armée des Legiones Astartes avec des boîtes pour Warhammer: The Horus Heresy.",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/thh_bgsets-nov02-2-share-4sutknhc6u.jpg"
+  },
+  {
    "title": "L’Aperçu du Dimanche – Les Forts Khazalites s’apprêtent à surgir des karaks",
    "url": "https://www.warhammer-community.com/fr-fr/articles/pqgrrqqt/lapercu-du-dimanche-les-forts-khazalites-sappretent-a-surgir-des-karaks/",
    "date": "2026-11-01T00:00:00+00:00",
@@ -30,14 +37,6 @@
    "date": "2026-10-31T00:00:00+00:00",
    "summary": "Régnez sur le sous-monde avec de nouvelles règles et figurines, et mettez la main sur quelques démons classiques de Tzeentch.",
    "image": "https://assets.warhammer-community.com/articles/0-2026/october/wc26-10/preorders-oct31-2-share_fre-19dbpn4rs7.jpg"
-  },
-  {
-   "title": "Obtenez votre sous-mains Space Marine II dans les magasins Warhammer ce week-end",
-   "url": "https://www.warhammer-community.com/fr-fr/articles/jdrdz7od/obtenez-votre-sous-mains-space-marine-ii-dans-les-magasins-warhammer-ce-week-end/",
-   "date": "2026-10-27T00:00:00+00:00",
-   "summary": "",
-   "image": "https://assets.warhammer-community.com/feature_generic2024-(1).jpg"
   }
- ],
- "wcfr_error": "name 'crumbs' is not defined"
+ ]
 }
