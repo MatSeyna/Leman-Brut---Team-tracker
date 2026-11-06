@@ -19,6 +19,7 @@ header{padding:14px 16px 0}
 .hd{display:flex;gap:12px;align-items:flex-start}
 #acct{position:relative;flex:none;min-width:84px}
 .acbtn{background:rgba(var(--acrgb),.14);border:1px solid var(--ac);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc{display:flex;align-items:center;gap:6px;margin:2px 0}.wtc{margin-top:4px;color:var(--ac)}
 .rk{display:flex;align-items:center;gap:6px;margin:3px 0;text-align:left;white-space:nowrap}.rk .cell{min-width:22px;text-align:center}
 .bdg{display:inline-block;background:var(--ac2);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:800;margin-left:4px}
 .acl{font-size:13px;line-height:1.5}.acl a{color:var(--ac);font-weight:700;text-decoration:none}
@@ -501,7 +502,33 @@ function vp(){
     rk.sort(function(a,b){return b.v-a.v||a.n.localeCompare(b.n)});
     h+="<td>"+(rk.length?rk.map(function(x){return'<div class="rk"><span class="cell" style="background:'+rc(x.v)+";color:"+rtx(x.v)+'">'+x.v+"</span> "+esc(x.n)+"</div>"}).join(""):'<span class="mut">—</span>')+"</td>";
   }
-  return h+"</tr></table></div></div>";
+  h+="</tr><tr><td><b>Résultat</b><div class=\"sub\">score sur 100 · points WTC</div></td>";
+  for(var j4=0;j4<n;j4++){
+    var ix=base+j4,rs=(ev.res&&ev.res[ix])||{},w2=wtc(rs.a,rs.b);
+    h+="<td>"+(mgr?'<select onchange="pres('+ix+',\'p\',this.value)" style="margin:0 0 4px;min-width:150px;display:block;width:100%"><option value="">Joueur choisi ?</option>'+ev.parts.map(function(p){return'<option value="'+esc(p.uid)+'"'+(rs.p===p.uid?" selected":"")+">"+esc(pnm(p.uid,p.pseudo))+"</option>"}).join("")+"</select>":'<div>'+esc(rs.p?pnm(rs.p,"?"):"Joueur ?")+"</div>")+
+    '<div class="sc">'+scIn(ix,"a",rs.a,mgr)+" – "+scIn(ix,"b",rs.b,mgr)+'</div><div class="sub">Nous – Adversaire</div>'+
+    (w2?'<div class="wtc"><b>WTC : '+w2[0]+" – "+w2[1]+'</b><div class="sub">écart '+(rs.a>=rs.b?"+":"−")+Math.abs(rs.a-rs.b)+"</div></div>":"")+"</td>";
+  }
+  var sr=wtcSum(ev,rr),st=wtcSum(ev,-1);
+  return h+"</tr></table></div>"+((sr.n||st.n)?'<div class="warn" style="margin-top:8px">'+(R>1?"Manche "+(rr+1)+" : ":"")+"<b>WTC "+sr.a+" – "+sr.b+"</b> ("+sr.n+" match"+(sr.n>1?"s":"")+" saisi"+(sr.n>1?"s":"")+")"+(R>1?" · Événement : <b>WTC "+st.a+" – "+st.b+"</b> ("+st.n+" match"+(st.n>1?"s":"")+")":"")+"</div>":"")+"</div>";
+}
+function scIn(ix,k,v,ed){return ed?'<input type="number" min="0" max="100" inputmode="numeric" value="'+(v==null?"":v)+'" onchange="pres('+ix+",'"+k+"',this.value)\" style=\"width:64px;display:inline-block;margin:0\">":'<b>'+(v==null?"–":v)+"</b>"}
+function wtc(a,b){
+  if(typeof a!=="number"||typeof b!=="number")return null;
+  var d=Math.abs(a-b),bonus=Math.max(0,Math.min(10,Math.ceil(d/5)-1)),win=10+bonus,lose=10-bonus;
+  return a>=b?[a===b?10:win,a===b?10:lose]:[lose,win];
+}
+function wtcSum(ev,r){
+  var o={a:0,b:0,n:0},R=Math.max(1,Math.min(10,ev.rounds||1)),n=ev.matches||5;
+  for(var q=0;q<R;q++){if(r>=0&&q!==r)continue;for(var j=0;j<n;j++){var rs=(ev.res&&ev.res[q*12+j])||{},w=wtc(rs.a,rs.b);if(w){o.a+=w[0];o.b+=w[1];o.n++}}}
+  return o;
+}
+function pres(ix,k,v){
+  var ev=evById(priEv);if(!ev||!isMgr())return;
+  ev.res=ev.res||{};var r=ev.res[ix]=ev.res[ix]||{};
+  if(k==="p"){if(v)r.p=v;else delete r.p}
+  else{var x=parseInt(v,10);if(isNaN(x)||v==="")delete r[k];else r[k]=Math.max(0,Math.min(100,x))}
+  ev.u=Date.now();persist();render();
 }
 function pdisp(ev,u){var r=LB.rates[ev.id+"|d|"+u];if(r&&r.d!==undefined)return r.d;var l=listOf(ev,u);return l&&l.disp||""}
 function pdset(u,d){var ev=evById(priEv);if(!ev||!canRate(u))return;LB.rates[ev.id+"|d|"+u]={v:0,d:d,u:Date.now()};persist();render()}
@@ -730,7 +757,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v23</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v24</div></div>':"");
 }
 function pendingCount(){
   var n=0;
