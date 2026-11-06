@@ -84,6 +84,8 @@ def goonhammer():
             url = "https://www.goonhammer.com/feed/page/%d/" % page
         try:
             root = ET.fromstring(get(url).content)
+            if page > 1 and root.find(".//item/link") is not None and root.find(".//item/link").text in firsts:
+                root = ET.fromstring(get("https://www.goonhammer.com/feed/page/%d/" % page).content)
         except Exception as exc:
             if page == 1:
                 raise
@@ -111,7 +113,7 @@ def goonhammer():
                 img = m.group(1) if m else None
             items.append({"title": title, "url": link, "date": iso(it.findtext("pubDate") or ""),
                           "summary": clean(desc or body), "image": img})
-        if len(items) >= N:
+        if len({i["url"] for i in items}) >= N:
             break
     items = list({i["url"]: i for i in items}.values())
     items.sort(key=lambda x: x["date"] or "", reverse=True)
