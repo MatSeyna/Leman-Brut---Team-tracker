@@ -176,8 +176,12 @@ function setWin(k){win=k;sv("win",k);render()}
 function render(){
   nav();status();sbSet(sbstate);
   var v=document.getElementById("v");
+  var keep=lastTab===tab,px=window.pageXOffset,py=window.pageYOffset,sc=keep?[].map.call(v.querySelectorAll(".scroll"),function(e){return[e.scrollLeft,e.scrollTop]}):[];
   v.innerHTML=tab==="w"?vw():tab==="m"?vm():tab==="d"?vd():tab==="a"?va():tab==="s"?vs():vp();
+  if(keep){[].forEach.call(v.querySelectorAll(".scroll"),function(e,i){if(sc[i]){e.scrollLeft=sc[i][0];e.scrollTop=sc[i][1]}});window.scrollTo(px,py)}
+  lastTab=tab;
 }
+var lastTab="";
 
 /* ---------- win rates ---------- */
 function lowM(){return{week:2,month:5,quarter:7}[win]||7}
@@ -760,7 +764,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v27</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v28</div></div>':"");
 }
 function pendingCount(){
   var n=0;
