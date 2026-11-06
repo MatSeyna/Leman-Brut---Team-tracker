@@ -20,7 +20,7 @@ header{padding:14px 16px 0}
 #acct{position:relative;flex:none;min-width:84px}
 .acbtn{background:rgba(var(--acrgb),.14);border:1px solid var(--ac);color:var(--tx);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:700;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vsr{display:flex;flex-direction:column;gap:2px;align-items:flex-start;margin-bottom:4px}.vs{font-size:13px;color:var(--ac);white-space:nowrap}.vs b{color:var(--tx)}
-.sc{display:flex;align-items:center;gap:6px;margin:2px 0}.wtc{margin-top:4px;color:var(--ac)}
+.sc{display:flex;align-items:flex-end;gap:6px;margin:2px 0}.scl{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--mut);text-align:left}.scl b{font-size:16px;color:var(--tx);padding:6px 0}.scd{padding-bottom:12px}.wtc{margin-top:4px;color:var(--ac)}
 .rk{display:flex;align-items:center;gap:6px;margin:3px 0;text-align:left;white-space:nowrap}.rk .cell{min-width:22px;text-align:center}
 .bdg{display:inline-block;background:var(--ac2);color:#fff;border-radius:999px;padding:0 7px;font-size:11px;font-weight:800;margin-left:4px}
 .acl{font-size:13px;line-height:1.5}.acl a{color:var(--ac);font-weight:700;text-decoration:none}
@@ -508,7 +508,7 @@ function vp(){
     var ix=base+j4,rs=(ev.res&&ev.res[ix])||{},w2=wtc(rs.a,rs.b);
     var ee=ev.en[ix]||{},vs='<span class="vs">contre <b>'+esc(ee.f||"armée ?")+"</b>"+(ee.d?' <span class="sub">'+esc(ee.d)+"</span>":"")+"</span>";
     h+="<td><div class=\"vsr\">"+(mgr?'<select onchange="pres('+ix+',\'p\',this.value)" style="margin:0 0 4px;min-width:150px;display:block;width:100%"><option value="">Joueur choisi ?</option>'+ev.parts.map(function(p){return'<option value="'+esc(p.uid)+'"'+(rs.p===p.uid?" selected":"")+">"+esc(pnm(p.uid,p.pseudo))+"</option>"}).join("")+"</select>":'<b>'+esc(rs.p?pnm(rs.p,"?"):"Joueur ?")+"</b>")+vs+"</div>"+
-    '<div class="sc">'+scIn(ix,"a",rs.a,mgr)+" – "+scIn(ix,"b",rs.b,mgr)+'</div><div class="sub">Nous – Adversaire</div>'+
+    '<div class="sc"><label class="scl">Joueur'+scIn(ix,"a",rs.a,mgr)+'</label><span class="scd">–</span><label class="scl">Adversaire'+scIn(ix,"b",rs.b,mgr)+"</label></div>"+
     (w2?'<div class="wtc"><b>WTC : '+w2[0]+" – "+w2[1]+'</b><div class="sub">écart '+(rs.a>=rs.b?"+":"−")+Math.abs(rs.a-rs.b)+"</div></div>":"")+"</td>";
   }
   var sr=wtcSum(ev,rr),st=wtcSum(ev,-1);
@@ -759,7 +759,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v25</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v26</div></div>':"");
 }
 function pendingCount(){
   var n=0;
