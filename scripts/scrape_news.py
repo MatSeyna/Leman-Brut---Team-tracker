@@ -76,8 +76,12 @@ def iso(s):
 def goonhammer():
     ns = {"c": "http://purl.org/rss/1.0/modules/content/", "m": "http://search.yahoo.com/mrss/"}
     items = []
+    urls_seen = []
+    firsts = set()
     for page in range(1, 7):
         url = "https://www.goonhammer.com/feed/" + ("?paged=%d" % page if page > 1 else "")
+        if page > 1 and urls_seen and urls_seen[-1] == "same":
+            url = "https://www.goonhammer.com/feed/page/%d/" % page
         try:
             root = ET.fromstring(get(url).content)
         except Exception as exc:
@@ -85,6 +89,10 @@ def goonhammer():
                 raise
             print("goonhammer page", page, "skipped:", exc)
             break
+        first = (root.find(".//item/link").text if root.find(".//item/link") is not None else "")
+        urls_seen.append("same" if first in firsts else "new")
+        firsts.add(first)
+        print("goonhammer feed page", page, "first item:", first)
         for it in root.iter("item"):
             title = html.unescape(it.findtext("title") or "").strip()
             link = (it.findtext("link") or "").strip()
