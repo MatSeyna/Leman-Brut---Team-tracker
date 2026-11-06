@@ -430,7 +430,7 @@ function eedit(id){
 }
 
 /* ---------- événements : participants, adversaires, ressenti ---------- */
-var priEv=ld("priev",""),priForm=false;
+var priEv=ld("priev",""),priForm=false,priRound=0;
 function rc(v){var t=(v-1)/4;return"hsl("+Math.round(115-t*115)+","+Math.round(55+t*15)+"%,"+Math.round(68-t*36)+"%)"}
 function rtx(v){return v>=4?"#fff":"#111"}
 function facWR(a,b){
@@ -451,12 +451,12 @@ function vp(){
   if((!ev||evs.indexOf(ev)<0)&&evs.length&&!priForm){ev=evs.filter(function(e){return e.date>=today()}).pop()||evs[0];priEv=ev.id}
   var h='<div class="card fm"><div class="army"><b>Événements</b>'+(mgr?'<button class="btn" onclick="pnew()">+ Nouveau</button>':"")+"</div>"+(mgr&&CFG&&!isAdminP()?'<div class="mut">Événements créés : '+myEvCount()+"/"+MAX_EV+" · supprimés automatiquement 30 jours après leur date.</div>":"");
   if(priForm||(!evs.length&&mgr)){
-    h+='<input id="pn" placeholder="Nom de l’événement"><input id="pd" type="date" value="'+today()+'"><label class="mut">Nombre de matchs de l’équipe</label><input id="pm" type="number" min="1" max="12" value="5"><button class="btn" onclick="psave()">Créer</button>'+(evs.length?'<button class="btn g" onclick="pcancel()">Annuler</button>':"");
+    h+='<input id="pn" placeholder="Nom de l’événement"><input id="pd" type="date" value="'+today()+'"><label class="mut">Nombre de manches</label><input id="pr" type="number" min="1" max="10" value="5"><label class="mut">Joueurs par manche (autant d’adversaires que de joueurs de l’équipe qui jouent)</label><input id="pm" type="number" min="1" max="12" value="5"><button class="btn" onclick="psave()">Créer</button>'+(evs.length?'<button class="btn g" onclick="pcancel()">Annuler</button>':"");
     return h+"</div>";
   }
   if(!evs.length)return h+'<div class="mut" style="margin-top:8px">Aucun événement pour toi pour l’instant. Un capitaine de l’équipe doit en créer un et t’y ajouter.</div></div>';
   h+='<select onchange="psel(this.value)">'+evOptions(priEv,false)+"</select>";
-  if(mgr)h+='<label class="mut" style="display:block;margin-top:8px">Nombre de matchs</label><input type="number" min="1" max="12" value="'+(ev.matches||5)+'" onchange="pcount(this.value)" style="width:90px"><button class="btn g sm" onclick="eedit(\''+ev.id+'\')">Renommer / date / supprimer</button>';
+  if(mgr)h+='<label class="mut" style="display:block;margin-top:8px">Nombre de manches</label><input type="number" min="1" max="10" value="'+(ev.rounds||1)+'" onchange="pround(this.value)" style="width:90px"><label class="mut" style="display:block;margin-top:8px">Joueurs par manche</label><input type="number" min="1" max="12" value="'+(ev.matches||5)+'" onchange="pcount(this.value)" style="width:90px"><button class="btn g sm" onclick="eedit(\''+ev.id+'\')">Renommer / date / supprimer</button>';
   if(mgr&&ev.by&&CFG)h+='<div class="mut" style="margin-top:6px">Créé par '+esc(pnm(ev.by,"un ancien membre"))+"</div>";
   h+="</div>";
   ev.parts=ev.parts||[];ev.en=ev.en||[];
@@ -474,11 +474,12 @@ function vp(){
     h+='<div class="card"><div class="mut">Le tableau des matchs s’affiche dès que tous les participants ont déposé leur liste.'+(ev.parts.length?"":" Commence par choisir les participants.")+"</div>"+(mgr&&ev.parts.length?'<button class="btn g" onclick="pforce()">Afficher quand même</button>':"")+"</div>";
     return h;
   }
-  var n=ev.matches||5;
-  h+='<div class="card"><div class="warn">Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
+  var n=ev.matches||5,R=Math.max(1,Math.min(10,ev.rounds||1)),rr=Math.min(priRound,R-1),base=rr*12;
+  var tabs=R>1?'<div class="chips" style="margin:0 0 8px;flex-wrap:wrap">'+Array.apply(null,Array(R)).map(function(_,q){return'<button class="chip'+(q===rr?" on":"")+'" onclick="prsel('+q+')">Manche '+(q+1)+"</button>"}).join("")+"</div>":"";
+  h+='<div class="card">'+tabs+'<div class="warn">'+(R>1?"Manche "+(rr+1)+" : ":"")+'Chaque colonne est un adversaire. Note chaque match de 1 (le moins à l’aise, vert clair) à 5 (le plus à l’aise, rouge foncé). Sous chaque case : win rate de l’armée (3 mois, MiniHeadQuarters) et de la disposition (saison, 40k-analytics) quand ils sont connus.</div><div class="scroll"><table><tr><th>Joueur</th>';
   for(var j=0;j<n;j++){
-    var e=ev.en[j]||{};
-    h+="<th>"+(mgr?'<select onchange="pen('+j+',\'f\',this.value)" style="display:block;width:100%;margin:0 0 4px;min-width:150px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+j+',\'d\',this.value)" style="display:block;width:100%;margin:0;min-width:150px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Match '+(j+1)+"</div></th>";
+    var e=ev.en[base+j]||{};
+    h+="<th>"+(mgr?'<select onchange="pen('+(base+j)+',\'f\',this.value)" style="display:block;width:100%;margin:0 0 4px;min-width:150px"><option value="">Armée ?</option>'+facOptions(e.f)+'</select><select onchange="pen('+(base+j)+',\'d\',this.value)" style="display:block;width:100%;margin:0;min-width:150px">'+dispOptions(e.d,true).replace("—","Disposition ?")+"</select>":'<div>'+esc(e.f||"Armée ?")+'</div><div class="sub">'+esc(e.d||"Disposition ?")+"</div>")+'<div class="sub">Adversaire '+(j+1)+"</div></th>";
   }
   h+="</tr>";
   ev.parts.forEach(function(p){
@@ -486,30 +487,32 @@ function vp(){
     var pd=pdisp(ev,p.uid);
     h+="<tr><td><b>"+esc(pnm(p.uid,p.pseudo))+'</b><div class="sub">'+esc(l?l.faction:"pas de liste")+"</div>"+(ed?'<select onchange="pdset(\''+esc(p.uid)+'\',this.value)" style="margin:4px 0 0;min-width:120px">'+dispOptions(pd,true).replace("—","Disposition ?")+"</select>":'<div class="sub">'+esc(pd||"Disposition ?")+"</div>")+"</td>";
     for(var j2=0;j2<n;j2++){
-      var c=(LB.rates[ev.id+"|"+j2+"|"+p.uid]||{}).v||0,en=ev.en[j2]||{},fw=l&&en.f?facWR(l.faction,en.f):null,dw=en.d&&pd?dispWR(pd,en.d):null;
-      h+='<td><div class="sel">'+[1,2,3,4,5].map(function(k){return'<button class="'+(c===k?"on":"")+'" style="background:'+rc(k)+";color:"+rtx(k)+(ed?"":";pointer-events:none")+'" onclick="rt('+j2+",'"+esc(p.uid)+"',"+k+')">'+k+"</button>"}).join("")+"</div>"+
+      var c=(LB.rates[ev.id+"|"+(base+j2)+"|"+p.uid]||{}).v||0,en=ev.en[base+j2]||{},fw=l&&en.f?facWR(l.faction,en.f):null,dw=en.d&&pd?dispWR(pd,en.d):null;
+      h+='<td><div class="sel">'+[1,2,3,4,5].map(function(k){return'<button class="'+(c===k?"on":"")+'" style="background:'+rc(k)+";color:"+rtx(k)+(ed?"":";pointer-events:none")+'" onclick="rt('+(base+j2)+",'"+esc(p.uid)+"',"+k+')">'+k+"</button>"}).join("")+"</div>"+
       ((fw||dw!=null)?'<div class="sub">'+(fw?"Armée "+pc(fw.win_rate)+" ("+fw.games+")":"")+(fw&&dw!=null?" · ":"")+(dw!=null?"Dispo "+pc(dw):"")+"</div>":"")+"</td>";
     }
     h+="</tr>";
   });
   h+="<tr><td><b>Total</b></td>";
-  for(var j3=0;j3<n;j3++){var t=0;ev.parts.forEach(function(p){t+=(LB.rates[ev.id+"|"+j3+"|"+p.uid]||{}).v||0});h+="<td><b>"+t+"</b></td>"}
+  for(var j3=0;j3<n;j3++){var t=0;ev.parts.forEach(function(p){t+=(LB.rates[ev.id+"|"+(base+j3)+"|"+p.uid]||{}).v||0});h+="<td><b>"+t+"</b></td>"}
   return h+"</tr></table></div></div>";
 }
 function pdisp(ev,u){var r=LB.rates[ev.id+"|d|"+u];if(r&&r.d!==undefined)return r.d;var l=listOf(ev,u);return l&&l.disp||""}
 function pdset(u,d){var ev=evById(priEv);if(!ev||!canRate(u))return;LB.rates[ev.id+"|d|"+u]={v:0,d:d,u:Date.now()};persist();render()}
 function pnew(){priForm=true;render()}
 function pcancel(){priForm=false;render()}
-function psel(id){priEv=id;sv("priev",id);render()}
+function psel(id){priEv=id;priRound=0;sv("priev",id);render()}
 function psave(){
   if(!isMgr())return;
-  var n=document.getElementById("pn").value.trim(),d=document.getElementById("pd").value,m=Math.max(1,Math.min(12,parseInt(document.getElementById("pm").value,10)||5));
+  var n=document.getElementById("pn").value.trim(),d=document.getElementById("pd").value,m=Math.max(1,Math.min(12,parseInt(document.getElementById("pm").value,10)||5)),rd=Math.max(1,Math.min(10,parseInt(document.getElementById("pr").value,10)||1));
   if(!n){alert("Donne un nom à l’événement.");return}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){alert("Choisis une date.");return}
   if(!canCreateEvent()){alert("Limite atteinte : "+MAX_EV+" événements par compte. Supprime-en un ou attends leur suppression automatique (30 jours après leur date).");return}
-  var id=uid();LB.events.push({id:id,name:n,date:d,matches:m,parts:[],en:[],by:AS?AS.uid:"",u:Date.now()});
+  var id=uid();LB.events.push({id:id,name:n,date:d,matches:m,rounds:rd,parts:[],en:[],by:AS?AS.uid:"",u:Date.now()});
   priEv=id;sv("priev",id);priForm=false;persist();render();
 }
+function pround(v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.rounds=Math.max(1,Math.min(10,parseInt(v,10)||1));if(priRound>=ev.rounds)priRound=0;ev.u=Date.now();persist();render()}
+function prsel(q){priRound=q;render()}
 function pcount(v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.matches=Math.max(1,Math.min(12,parseInt(v,10)||5));ev.u=Date.now();persist();render()}
 function ppart(u,on){
   var ev=evById(priEv);if(!ev||!isMgr())return;
@@ -517,7 +520,7 @@ function ppart(u,on){
   if(on){var t=teamPlayers().filter(function(x){return x.uid===u})[0];if(t)ev.parts.push({uid:t.uid,pseudo:t.pseudo})}
   ev.u=Date.now();persist();render();
 }
-function pen(j,k,v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.en=ev.en||[];for(var q=0;q<=j;q++)if(!ev.en[q])ev.en[q]={};ev.en[j][k]=v;ev.u=Date.now();persist();render()}
+function pen(j,k,v){var ev=evById(priEv);if(!ev||!isMgr())return;ev.en=ev.en||[];ev.en[j]=ev.en[j]||{};ev.en[j][k]=v;ev.u=Date.now();persist();render()}
 function pforce(){var ev=evById(priEv);if(!ev)return;ev.force=true;ev.u=Date.now();persist();render()}
 function lnew2(eid){lfrom=tab==="a"?lfrom:tab;tab="a";lnew(eid)}
 function lopen2(id){lfrom=tab==="a"?lfrom:tab;tab="a";lopen(id)}
@@ -721,7 +724,7 @@ function acctHtml(){
   if(!CFG)return"";
   if(!AS)return'<div class="acl"><a href="#" onclick="alogin();return false">Login</a><br><a href="#" onclick="asignup();return false">S’inscrire</a></div>';
   var n=AU.profile?AU.profile.pseudo:(AS.email||"Compte");
-  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v20</div></div>':"");
+  return'<button class="acbtn" onclick="amenu(event)">👤 '+esc(n)+' ▾'+(pendingCount()?' <span class="bdg">'+pendingCount()+"</span>":"")+'</button>'+(menuOpen?'<div class="menu"><button onclick="aprof()">Mon profil</button><button onclick="ateamv()">Équipe &amp; administration'+(pendingCount()?' <span class="bdg">'+pendingCount()+" à valider</span>":"")+'</button>'+(themePref()==="random"?'<button onclick="pickTheme();render()">🎲 Changer d’ambiance ('+esc(themeById(ld("theme","ork")).name)+')</button>':"")+'<button onclick="aout2()">Déconnexion</button><div class="mut" style="padding:8px 14px">Version v21</div></div>':"");
 }
 function pendingCount(){
   var n=0;
