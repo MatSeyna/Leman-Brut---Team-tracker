@@ -104,6 +104,7 @@ def goonhammer():
                           "summary": clean(desc or body), "image": img})
         if len(items) >= N:
             break
+    items = list({i["url"]: i for i in items}.values())
     items.sort(key=lambda x: x["date"] or "", reverse=True)
     if not items:
         raise RuntimeError("no 40k item found in the Goonhammer feed")
@@ -168,6 +169,8 @@ def wcfr():
         tags = " ".join(t.get("content", "") for t in soup.find_all("meta", attrs={"property": "article:tag"}))
         kw = meta(soup, "keywords") or ""
         jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
+        hrefs = sorted({a["href"] for a in soup.find_all("a", href=True) if "/fr-fr/" in a["href"] and "/articles/" not in a["href"]})
+        print("DBGL", u[-40:], hrefs)
         print("DBG", u[-60:], "| tags:", tags[:80], "| kw:", kw[:100], "| jl:", jl[:100], "| title:", title[:50])
         hay = " ".join([title, desc, tags, kw, u])
         if not (K40.search(hay) or re.search(r"Warhammer 40[\s,.  ]*000", crumbs)):
@@ -177,7 +180,7 @@ def wcfr():
             m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', str(soup))
             d = iso(m.group(1)) if m else None
         items.append({"title": title, "url": u, "date": d, "summary": clean(desc), "image": meta(soup, "og:image")})
-        if len(items) >= N + 3:  # a few spare, then sort by date
+        if len(items) >= 9:  # a few spare, then sort by date
             break
     if not items:
         raise RuntimeError("no 40k article found on Warhammer Community FR")
