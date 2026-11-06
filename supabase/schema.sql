@@ -217,4 +217,21 @@ from auth.users u
 where not exists (select 1 from profiles p where p.id = u.id)
 on conflict do nothing;
 
+-- Garde-fous de forme (anti-injection, anti-abus) : s'appliquent aux nouvelles écritures.
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'lb_docs_safe') then
+    alter table lb_docs add constraint lb_docs_safe check (
+      k in ('event', 'list', 'rate', 'note', 'players')
+      and id ~ '^[A-Za-z0-9_.|:-]{1,120}$'
+      and octet_length(body::text) < 200000
+    ) not valid;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'teams_name_safe') then
+    alter table teams add constraint teams_name_safe check (char_length(name) between 2 and 40) not valid;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'profiles_pseudo_safe') then
+    alter table profiles add constraint profiles_pseudo_safe check (char_length(pseudo) between 1 and 30) not valid;
+  end if;
+end $$;
+
 notify pgrst, 'reload schema';
