@@ -75,26 +75,18 @@ def iso(s):
 # ---------------------------------------------------------------- Goonhammer
 def goonhammer():
     ns = {"c": "http://purl.org/rss/1.0/modules/content/", "m": "http://search.yahoo.com/mrss/"}
-    items = []
-    urls_seen = []
-    firsts = set()
-    for page in range(1, 7):
-        url = "https://www.goonhammer.com/feed/" + ("?paged=%d" % page if page > 1 else "")
-        if page > 1 and urls_seen and urls_seen[-1] == "same":
-            url = "https://www.goonhammer.com/feed/page/%d/" % page
+    base = "https://www.goonhammer.com"
+    feeds = [base + "/feed/"] + [base + p for p in (
+        "/category/40k/feed/", "/category/warhammer-40k/feed/", "/tag/40k/feed/", "/tag/warhammer-40k/feed/",
+        "/category/40k/competitive-innovations/feed/", "/category/tabletop-battles/feed/")]
+    items, ok = {}, 0
+    for url in feeds:
         try:
             root = ET.fromstring(get(url).content)
-            if page > 1 and root.find(".//item/link") is not None and root.find(".//item/link").text in firsts:
-                root = ET.fromstring(get("https://www.goonhammer.com/feed/page/%d/" % page).content)
         except Exception as exc:
-            if page == 1:
-                raise
-            print("goonhammer page", page, "skipped:", exc)
-            break
-        first = (root.find(".//item/link").text if root.find(".//item/link") is not None else "")
-        urls_seen.append("same" if first in firsts else "new")
-        firsts.add(first)
-        print("goonhammer feed page", page, "first item:", first)
+            print("goonhammer feed skipped:", url, exc)
+            continue
+        ok += 1
         for it in root.iter("item"):
             title = html.unescape(it.findtext("title") or "").strip()
             link = (it.findtext("link") or "").strip()
@@ -105,21 +97,22 @@ def goonhammer():
             if not K40.search(hay) or re.search(r"battletech|age of sigmar|old world", title, re.I):
                 continue
             img = None
-            mc = it.find("m:content", ns) or it.find("m:thumbnail", ns)
+            mc = it.find("m:content", ns)
+            if mc is None:
+                mc = it.find("m:thumbnail", ns)
             if mc is not None and mc.get("url"):
                 img = mc.get("url")
             if not img:
                 m = re.search(r'<img[^>]+src="([^"]+)"', body)
                 img = m.group(1) if m else None
-            items.append({"title": title, "url": link, "date": iso(it.findtext("pubDate") or ""),
-                          "summary": clean(desc or body), "image": img})
-        if len({i["url"] for i in items}) >= N:
-            break
-    items = list({i["url"]: i for i in items}.values())
-    items.sort(key=lambda x: x["date"] or "", reverse=True)
-    if not items:
-        raise RuntimeError("no 40k item found in the Goonhammer feed")
-    return items[:N]
+            items[link] = {"title": title, "url": link, "date": iso(it.findtext("pubDate") or ""),
+                           "summary": clean(desc or body), "image": img}
+    if not ok:
+        raise RuntimeError("no Goonhammer feed reachable")
+    out = sorted(items.values(), key=lambda x: x["date"] or "", reverse=True)
+    if not out:
+        raise RuntimeError("no 40k item found in the Goonhammer feeds")
+    return out[:N]
 
 
 # ------------------------------------------------------- Warhammer Community FR
