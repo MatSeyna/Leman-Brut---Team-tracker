@@ -179,6 +179,15 @@ def discover_window_param(soup):
 
 
 # ---------------------------------------------------------------- table parsers
+NO_DATA_RE = re.compile(r"no data is available", re.I)
+
+
+def window_is_empty(soup):
+    """The site shows 'No data is available for this window.' when no games
+    were reported in the selected window (e.g. a quiet week)."""
+    return bool(soup.find(string=NO_DATA_RE))
+
+
 def parse_factions(soup):
     for table in soup.find_all("table"):
         head = header_texts(table)
@@ -310,10 +319,24 @@ def main():
 
     windows = {}
     stale = []
+    empty_windows = []
     for key, label in WINDOWS.items():
         value = values[label]
         soup = get(STATS, {param: value})
         factions = parse_factions(soup)
+        if not factions and window_is_empty(soup):
+            old = prev_windows.get(key)
+            print(f"[{key}] the site has no data for '{label}' right now; "
+                  + ("keeping previous numbers" if old else "no previous numbers to keep"),
+                  file=sys.stderr)
+            if old:
+                kept = dict(old)
+                kept["no_data"] = True
+                kept["as_of"] = kept.get("as_of") or (previous or {}).get("date")
+                windows[key] = kept
+            empty_windows.append(key)
+            stale.append(f"{key}:no-data")
+            continue
         if len(factions) < 15:
             raise RuntimeError(f"[{key}] only {len(factions)} factions parsed — page layout changed?")
         matrix, overall = parse_dispositions(soup)
@@ -334,12 +357,16 @@ def main():
                 stale.append(f"{key}:{f['id']}")
         windows[key] = {
             "label": label,
+            "as_of": today,
             "factions": factions,
             "dispositions": matrix,
             "dispositions_overall": overall,
             "matchups": matchups,
         }
         print(f"[{key}] {len(factions)} factions, {len(matchups)} matchup tables")
+
+    if len(empty_windows) == len(WINDOWS):
+        raise RuntimeError("the site has no data for any time window — nothing to save")
 
     changed = content_hash(windows) != content_hash(prev_windows) if previous else True
     snapshot = {
@@ -359,6 +386,8 @@ def main():
 
     trend = load_json(DATA / "trend.json", {})
     for key, w in windows.items():
+        if w.get("no_data"):
+            continue  # old numbers, not a new data point
         t = trend.setdefault(key, {})
         for f in w["factions"]:
             if f["id"] is None or f["win_rate"] is None:
