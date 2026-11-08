@@ -17,3 +17,16 @@ for name, (url, params) in pages.items():
     (out / f"{name}.html").write_text(r.text)
     print(name, r.status_code, len(r.text), r.headers.get("content-type"))
     time.sleep(1.5)
+
+from bs4 import BeautifulSoup
+import re
+for name in pages:
+    soup = BeautifulSoup((out / f"{name}.html").read_text(), "html.parser")
+    print(f"===== {name}: {len(soup.find_all('table'))} tables")
+    for t in soup.find_all("table"):
+        first = t.find("tr")
+        print("  TABLE head:", [c.get_text(" ", strip=True) for c in first.find_all(["th","td"])] if first else None,
+              "rows:", len(t.find_all("tr")))
+    main = soup.find("main") or soup.body
+    text = re.sub(r"\s+", " ", main.get_text(" ", strip=True))
+    print("  TEXT:", text[:3000])
