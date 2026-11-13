@@ -78,7 +78,7 @@ def goonhammer():
     base = "https://www.goonhammer.com"
     feeds = [base + "/feed/"] + [base + p for p in (
         "/category/40k/feed/", "/category/warhammer-40k/feed/", "/tag/40k/feed/", "/tag/warhammer-40k/feed/",
-        "/category/40k/competitive-innovations/feed/", "/category/tabletop-battles/feed/")]
+        "/category/tabletop-battles/feed/")]
     items, ok = {}, 0
     for url in feeds:
         try:
@@ -127,41 +127,70 @@ def meta(soup, *names):
     return None
 
 
-def wcfr():
-    links = []
-    feeds = [WC + "/fr-fr/feed/", WC + "/feed/"]
-    for f in feeds:  # an RSS feed is the cleanest source if it exists
-        try:
-            r = get(f)
-            if b"<item" in r.content[:200000]:
-                for it in ET.fromstring(r.content).iter("item"):
-                    u = (it.findtext("link") or "").strip()
-                    if "/fr-fr/" in u:
-                        links.append(u)
-                break
-        except Exception:
-            pass
-    if not links:
-        for page in (WC + "/fr-fr/", WC + "/fr-fr/all-news-and-features/", WC + "/fr-fr/the-latest/"):
-            try:
-                txt = get(page).text.replace("\\u002F", "/").replace("\\/", "/")
-            except Exception as exc:
-                print("wcfr listing skipped:", page, exc)
-                continue
-            for m in ART.finditer(txt):
-                links.append(urljoin(WC, m.group(0)))
+API = WC + "/api/search/news/"
+ASSETS = "https://assets.warhammer-community.com/"
+GS40K = "Warhammer 40,000"
+
+
+def day_iso(s):
+    """'2026-11-08' -> '2026-11-08T00:00:00+00:00' (a bare day must not shift with the local time zone)."""
+    s = (s or "").strip()
+    return s + "T00:00:00+00:00" if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s) else iso(s)
+
+
+def is_40k(n):
+    """An article counts as 40k if its game system or one of its topics is Warhammer 40,000,
+    or if its title names 40k or a 40k faction (multi-game articles such as the Sunday
+    preview or the Saturday pre-orders have no game system but carry a 40k topic)."""
+    gs = (n.get("game_system") or {}).get("title") or ""
+    topics = [t.get("title") or "" for t in (n.get("topics") or [])]
+    if gs == GS40K or GS40K in topics:
+        return True
+    title = n.get("title") or ""
+    return bool(K40.search(title) or FACT.search(title + " " + (n.get("slug") or "").replace("-", " ")))
+
+
+def wcfr_api():
+    """The site's own search API: newest first, with game system, topics and dates."""
+    body = {"sortBy": "date_desc", "category": "", "collections": ["articles"], "game_systems": [],
+            "index": "news", "locale": "fr-fr", "page": 0, "perPage": 36, "topics": []}
+    if not allowed(API):
+        raise RuntimeError("robots.txt disallows " + API)
+    r = requests.post(API, json=body, timeout=60, headers={
+        "User-Agent": UA, "Accept-Language": "fr,en;q=0.8", "Accept": "application/json"})
+    r.raise_for_status()
+    news = r.json().get("news") or []
+    if not news:
+        raise RuntimeError("Warhammer Community API returned no article")
+    items = []
+    for n in news:
+        if not is_40k(n) or not n.get("uri"):
+            continue
+        img = (n.get("image") or {}).get("path")
+        items.append({"title": html.unescape(n.get("title") or "").strip(),
+                      "url": WC + "/fr-fr" + n["uri"].rstrip("/") + "/",
+                      "date": day_iso(n.get("date_universal")),
+                      "summary": clean(n.get("excerpt") or ""),
+                      "image": (ASSETS + img) if img else None})
+    if not items:
+        raise RuntimeError("no 40k article in the latest Warhammer Community FR articles")
+    items.sort(key=lambda x: x["date"] or "", reverse=True)
+    return items[:N]
+
+
+def wcfr_html():
+    """Fallback if the API changes: article links found on the French home page."""
+    txt = get(WC + "/fr-fr/").text.replace("\\u002F", "/").replace("\\/", "/")
     seen, uniq = set(), []
-    for u in links:
-        u = u.split("#")[0]
-        if not u.endswith("/"):
-            u += "/"
+    for m in ART.finditer(txt):
+        u = urljoin(WC, m.group(0)).split("#")[0].rstrip("/") + "/"
         if u not in seen:
             seen.add(u)
             uniq.append(u)
     if not uniq:
         raise RuntimeError("no article link found on Warhammer Community FR")
     items = []
-    for u in uniq[:40]:
+    for u in uniq[:20]:
         try:
             soup = BeautifulSoup(get(u).text, "html.parser")
         except Exception as exc:
@@ -169,11 +198,6 @@ def wcfr():
             continue
         title = meta(soup, "og:title", "twitter:title") or (soup.title.string if soup.title else "")
         title = re.sub(r"\s*[-|–]\s*Warhammer Community\s*$", "", title or "").strip()
-        desc = meta(soup, "og:description", "description") or ""
-        tags = " ".join(t.get("content", "") for t in soup.find_all("meta", attrs={"property": "article:tag"}))
-        kw = meta(soup, "keywords") or ""
-        jl = " ".join(re.findall(r'"(?:keywords|articleSection)"\s*:\s*("?[^"\]}]*)', str(soup)))
-        hay = " ".join([title, desc, tags, kw, jl, u])
         slug = u.rsplit("/", 2)[-2].replace("-", " ")
         if not (K40.search(title + " " + u) or FACT.search(title + " " + slug)):
             continue
@@ -181,13 +205,23 @@ def wcfr():
         if not d:
             m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', str(soup))
             d = iso(m.group(1)) if m else None
-        items.append({"title": title, "url": u, "date": d, "summary": clean(desc), "image": meta(soup, "og:image")})
-        if len(items) >= 6:  # a few spare, then sort by date
+        items.append({"title": title, "url": u, "date": d,
+                      "summary": clean(meta(soup, "og:description", "description") or ""),
+                      "image": meta(soup, "og:image")})
+        if len(items) >= 6:
             break
     if not items:
         raise RuntimeError("no 40k article found on Warhammer Community FR")
     items.sort(key=lambda x: x["date"] or "", reverse=True)
     return items[:N]
+
+
+def wcfr():
+    try:
+        return wcfr_api()
+    except Exception as exc:
+        print("wcfr API failed, falling back to the home page:", exc)
+        return wcfr_html()
 
 
 def main():
