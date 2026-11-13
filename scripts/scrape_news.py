@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Latest Warhammer 40,000 articles from Goonhammer (RSS) and Warhammer Community FR.
+"""Latest Warhammer 40,000 articles from Goonhammer (RSS) and Warhammer Community
+(French first; an English article is shown only while it has no French version).
 
 Writes data/news.json: {"fetched_at", "goonhammer":[3 items], "wcfr":[3 items]}.
-Each item: title, url, date (ISO), summary, image. A source that fails keeps its previous
+Each item: title, url, date (ISO), summary, image (+ lang "fr"/"en" for Warhammer Community). A source that fails keeps its previous
 items (from the existing file) so the app never shows an empty column because of one bad run.
 One short burst of requests per run, robots.txt respected, polite User-Agent.
 """
@@ -150,10 +151,11 @@ def is_40k(n):
     return bool(K40.search(title) or FACT.search(title + " " + (n.get("slug") or "").replace("-", " ")))
 
 
-def wcfr_api():
-    """The site's own search API: newest first, with game system, topics and dates."""
+def wc_api(locale, per_page=60):
+    """The site's own search API: newest articles first, with game system, topics, dates and a
+    uuid shared by an article and its translations (same uuid in en-gb and fr-fr)."""
     body = {"sortBy": "date_desc", "category": "", "collections": ["articles"], "game_systems": [],
-            "index": "news", "locale": "fr-fr", "page": 0, "perPage": 36, "topics": []}
+            "index": "news", "locale": locale, "page": 0, "perPage": per_page, "topics": []}
     if not allowed(API):
         raise RuntimeError("robots.txt disallows " + API)
     r = requests.post(API, json=body, timeout=60, headers={
@@ -161,20 +163,43 @@ def wcfr_api():
     r.raise_for_status()
     news = r.json().get("news") or []
     if not news:
-        raise RuntimeError("Warhammer Community API returned no article")
-    items = []
-    for n in news:
-        if not is_40k(n) or not n.get("uri"):
-            continue
-        img = (n.get("image") or {}).get("path")
-        items.append({"title": html.unescape(n.get("title") or "").strip(),
-                      "url": WC + "/fr-fr" + n["uri"].rstrip("/") + "/",
-                      "date": day_iso(n.get("date_universal")),
-                      "summary": clean(n.get("excerpt") or ""),
-                      "image": (ASSETS + img) if img else None})
+        raise RuntimeError("Warhammer Community API returned no article for " + locale)
+    return news
+
+
+def wc_uuid(n):
+    """Shared id of an article and its translations; read from the link if the field is missing."""
+    m = re.search(r"/articles/([A-Za-z0-9]+)/", (n.get("uri") or "") + "/")
+    return n.get("uuid") or (m.group(1) if m else None)
+
+
+def wc_item(n, locale, lang):
+    img = (n.get("image") or {}).get("path")
+    return {"title": html.unescape(n.get("title") or "").strip(),
+            "url": WC + "/" + locale + n["uri"].rstrip("/") + "/",
+            "date": day_iso(n.get("date_universal")),
+            "summary": clean(n.get("excerpt") or ""),
+            "image": (ASSETS + img) if img else None,
+            "lang": lang, "uuid": wc_uuid(n)}
+
+
+def wcfr_api():
+    """French 40k articles, completed by English ones that have no French version yet.
+    Each run starts from scratch, so once the French translation is out (same uuid),
+    the English item is dropped and the French one takes its place."""
+    fr = wc_api("fr-fr")
+    fr_uuids = {wc_uuid(n) for n in fr} - {None}
+    items = [wc_item(n, "fr-fr", "fr") for n in fr if n.get("uri") and is_40k(n)]
+    try:
+        en = wc_api("en-gb")
+        items += [wc_item(n, "en-gb", "en") for n in en
+                  if n.get("uri") and wc_uuid(n) not in fr_uuids and is_40k(n)]
+    except Exception as exc:  # English is a bonus: never lose the French column because of it
+        print("wcfr English skipped:", exc)
     if not items:
-        raise RuntimeError("no 40k article in the latest Warhammer Community FR articles")
-    items.sort(key=lambda x: x["date"] or "", reverse=True)
+        raise RuntimeError("no 40k article in the latest Warhammer Community articles")
+    # newest first; on the same day, French before English
+    items.sort(key=lambda x: (x["date"] or "", x["lang"] == "fr"), reverse=True)
     return items[:N]
 
 
@@ -207,7 +232,7 @@ def wcfr_html():
             d = iso(m.group(1)) if m else None
         items.append({"title": title, "url": u, "date": d,
                       "summary": clean(meta(soup, "og:description", "description") or ""),
-                      "image": meta(soup, "og:image")})
+                      "image": meta(soup, "og:image"), "lang": "fr"})
         if len(items) >= 6:
             break
     if not items:

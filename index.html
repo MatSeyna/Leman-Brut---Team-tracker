@@ -50,6 +50,7 @@ main{padding:8px 12px 40px;max-width:980px;margin:0 auto}
 .ngrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
 .ncol h3{margin:0;font:800 17px/1.1 Impact,"Arial Narrow Bold",sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ac)}
 .nsub{margin:2px 0 8px}
+.alang{display:inline-block;margin-right:6px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.05em;opacity:.8}
 a.art{display:block;color:var(--tx);text-decoration:none;padding:0;overflow:hidden}
 a.art img{width:100%;height:96px;object-fit:cover;display:block}
 .at{font-weight:700;font-size:14px;line-height:1.25;padding:10px 10px 2px}
@@ -214,7 +215,7 @@ function ncol(title,sub,items,home,err){
   if(!items||!items.length)h+='<div class="card mut">Pas encore d’articles'+(err?" ("+esc(err)+")":"")+'.</div>';
   else items.forEach(function(a){
     h+='<a class="card art" href="'+esc(safeUrl(a.url))+'" target="_blank" rel="noopener">'+(a.image?'<img loading="lazy" alt="" referrerpolicy="no-referrer" src="'+esc(safeUrl(a.image))+'">':"")+
-      '<div class="at">'+esc(a.title)+'</div><div class="ad">'+esc(ndate(a.date))+"</div>"+(a.summary?'<div class="as">'+esc(a.summary)+"</div>":"")+'<div class="ago">Lire l’article →</div></a>';
+      '<div class="at">'+esc(a.title)+'</div><div class="ad">'+(a.lang==="en"?'<span class="alang" title="Pas encore traduit en français">EN</span>':"")+esc(ndate(a.date))+"</div>"+(a.summary?'<div class="as">'+esc(a.summary)+"</div>":"")+'<div class="ago">Lire l’article →</div></a>';
   });
   return h+'<a class="btn g nmore" href="'+home+'" target="_blank" rel="noopener">Voir tout le site →</a></div>';
 }
@@ -224,7 +225,7 @@ function vn(){
     '<div><div class="ntitle">Leman Brut</div><div class="ntag">Équipe Warhammer 40,000 · '+esc(t.name)+'</div></div></section>'+
     '<div class="nstrip">'+THEMES.map(function(x){return'<button class="'+(x.id===t.id?"on":"")+'" title="'+esc(x.name)+'" onclick="nTheme(\''+x.id+'\')" style="background-image:url('+x.img+')"></button>'}).join("")+"</div>"+
     '<div class="ngrid">'+ncol("Goonhammer","Compétitif · en anglais · 40k",n.goonhammer,"https://www.goonhammer.com/category/40k/",n.goonhammer_error)+
-    ncol("Warhammer Community","Officiel · en français · 40k",n.wcfr,"https://www.warhammer-community.com/fr-fr/",n.wcfr_error)+"</div>"+
+    ncol("Warhammer Community","Officiel · en français (anglais si pas encore traduit) · 40k",n.wcfr,"https://www.warhammer-community.com/fr-fr/",n.wcfr_error)+"</div>"+
     '<div class="nlinks"><span>Liens utiles</span>'+[["Wahapedia","https://wahapedia.ru/"],["Best Coast Pairings","https://www.bestcoastpairings.com"],["Lexicanum","https://wh40k.lexicanum.com"],["MiniHeadQuarters","https://miniheadquarters.com"],["40k-analytics","https://40k-analytics.github.io/stateofthegame/"]].map(function(l){return'<a href="'+l[1]+'" target="_blank" rel="noopener">'+l[0]+"</a>"}).join("")+"</div>"+
     '<div class="mut" style="text-align:center;margin-top:4px">'+(n.fetched_at?"Articles mis à jour le "+esc(new Date(n.fetched_at).toLocaleString("fr-FR",{day:"numeric",month:"long",hour:"2-digit",minute:"2-digit"}))+" · toutes les 12 heures":"Les articles apparaîtront après la première mise à jour automatique.")+"</div>";
   return h;
