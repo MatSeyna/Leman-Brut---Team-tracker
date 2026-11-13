@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-13T20:22:27+00:00",
+ "fetched_at": "2026-11-13T20:27:56+00:00",
  "goonhammer": [
   {
    "title": "[40k] Big Hat, Reviewed",
@@ -25,25 +25,31 @@
  ],
  "wcfr": [
   {
+   "title": "The Adepta Sororitas make their presence known in Warhammer 40,000: Darktide",
+   "url": "https://www.warhammer-community.com/en-gb/articles/xn0ljqav/the-adepta-sororitas-make-their-presence-known-in-warhammer-40000-darktide/",
+   "date": "2026-11-12T00:00:00+00:00",
+   "summary": "Step into the boots of a Novitiate in an upcoming DLC.",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-09-11/darktideupdate-nov12-1-feature-e9julcvnrr.jpg",
+   "lang": "en",
+   "uuid": "xn0ljqav"
+  },
+  {
    "title": "L’Aperçu du Dimanche – De nouvelles boîtes de Bataillons sont mobilisées",
    "url": "https://www.warhammer-community.com/fr-fr/articles/rufkxsxw/lapercu-du-dimanche-de-nouvelles-boites-de-bataillons-sont-mobilisees/",
    "date": "2026-11-08T00:00:00+00:00",
    "summary": "D’incroyables nouvelles boîtes contenant des sets pour Warhammer 40,000, Warhammer Age of Sigmar et Warhammer: The Horus Heresy.",
-   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/sundaypreview-nov08-1-feature_fre-lu4oyf0oc3.jpg"
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/sundaypreview-nov08-1-feature_fre-lu4oyf0oc3.jpg",
+   "lang": "fr",
+   "uuid": "rufkxsxw"
   },
   {
-   "title": "Précommandes du Samedi – Rejoignez la Maison de Fer",
-   "url": "https://www.warhammer-community.com/fr-fr/articles/tbfqksyc/precommandes-du-samedi-rejoignez-la-maison-de-fer/",
-   "date": "2026-10-31T00:00:00+00:00",
-   "summary": "Régnez sur le sous-monde avec de nouvelles règles et figurines, et mettez la main sur quelques démons classiques de Tzeentch.",
-   "image": "https://assets.warhammer-community.com/articles/0-2026/october/wc26-10/preorders-oct31-1-feature_fre-litxsi2v59.jpg"
-  },
-  {
-   "title": "Obtenez votre sous-mains Space Marine II dans les magasins Warhammer ce week-end",
-   "url": "https://www.warhammer-community.com/fr-fr/articles/jdrdz7od/obtenez-votre-sous-mains-space-marine-ii-dans-les-magasins-warhammer-ce-week-end/",
-   "date": "2026-10-27T00:00:00+00:00",
-   "summary": "",
-   "image": "https://assets.warhammer-community.com/feature_generic2024-(1).jpg"
+   "title": "The Butcher's Nails and Astartes II release dates",
+   "url": "https://www.warhammer-community.com/en-gb/articles/f8ue9xw9/the-butchers-nails-and-astartes-ii-release-dates/",
+   "date": "2026-11-06T00:00:00+00:00",
+   "summary": "Animated carnage this winter on Warhammer TV.",
+   "image": "https://assets.warhammer-community.com/1-feature-dcf0qpfgjk.jpg",
+   "lang": "en",
+   "uuid": "f8ue9xw9"
   }
  ]
 }
