@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-13T20:27:56+00:00",
+ "fetched_at": "2026-11-13T20:33:59+00:00",
  "goonhammer": [
   {
    "title": "[40k] Big Hat, Reviewed",
@@ -20,6 +20,20 @@
    "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-angels-on-the-outflank-pt-1/",
    "date": "2026-11-11T14:00:24+00:00",
    "summary": "Sisters strike for the top, but Dark Angels hold onto their crown in part one of Competitive Innovations.",
+   "image": null
+  },
+  {
+   "title": "Rating the 2026 Warhammer 40K Battleforce Boxes",
+   "url": "https://www.tabletopbattles.com/rating-the-2026-warhammer-40k-battleforce-boxes/",
+   "date": "2026-11-10T17:00:08+00:00",
+   "summary": "Games Workshop's Battleforce boxes have arrived for 2026! Campbell \"SRM\" McLaughlin runs down what's in each of the 40K offerings and whether they're worth it.",
+   "image": null
+  },
+  {
+   "title": "[40k] Weekend Update: November 9, 2026",
+   "url": "https://www.tabletopbattles.com/weekend-update-november-9-2026/",
+   "date": "2026-11-09T16:00:39+00:00",
+   "summary": "We look back at the major events and goings on over the weekend.",
    "image": null
   }
  ],
@@ -50,6 +64,24 @@
    "image": "https://assets.warhammer-community.com/1-feature-dcf0qpfgjk.jpg",
    "lang": "en",
    "uuid": "f8ue9xw9"
+  },
+  {
+   "title": "Big news for Blood Angels",
+   "url": "https://www.warhammer-community.com/en-gb/articles/htrydh0a/big-news-for-blood-angels/",
+   "date": "2026-11-05T00:00:00+00:00",
+   "summary": "A hero returns and incoming Codex news!",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/1-feature-xs0jjlugpr.jpg",
+   "lang": "en",
+   "uuid": "htrydh0a"
+  },
+  {
+   "title": "Précommandes du Samedi – Rejoignez la Maison de Fer",
+   "url": "https://www.warhammer-community.com/fr-fr/articles/tbfqksyc/precommandes-du-samedi-rejoignez-la-maison-de-fer/",
+   "date": "2026-10-31T00:00:00+00:00",
+   "summary": "Régnez sur le sous-monde avec de nouvelles règles et figurines, et mettez la main sur quelques démons classiques de Tzeentch.",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/october/wc26-10/preorders-oct31-1-feature_fre-litxsi2v59.jpg",
+   "lang": "fr",
+   "uuid": "tbfqksyc"
   }
  ]
 }
