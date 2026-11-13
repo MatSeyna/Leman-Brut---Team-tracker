@@ -2,7 +2,7 @@
 """Latest Warhammer 40,000 articles from Goonhammer (RSS) and Warhammer Community
 (French first; an English article is shown only while it has no French version).
 
-Writes data/news.json: {"fetched_at", "goonhammer":[3 items], "wcfr":[3 items]}.
+Writes data/news.json: {"fetched_at", "goonhammer":[5 items], "wcfr":[5 items]}.
 Each item: title, url, date (ISO), summary, image (+ lang "fr"/"en" for Warhammer Community). A source that fails keeps its previous
 items (from the existing file) so the app never shows an empty column because of one bad run.
 One short burst of requests per run, robots.txt respected, polite User-Agent.
@@ -24,7 +24,7 @@ from bs4 import BeautifulSoup
 UA = "LemanBrutTeamTracker/1.0 (private team tool; 2 runs per day)"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "news.json"
-N = 3
+N = 5
 K40 = re.compile(r"40[\s,.  -]*0{3}|40k|40-?000|\bw40k\b", re.I)
 FACT = re.compile(r"\b(astartes|space marines?|necrons?|orks?|tyranids?|genestealer|aeldari|drukhari|t.au|death guard|custodes|adepta|astra militarum|votann|grey knights|world eaters|thousand sons|chaos (space|knights|daemons)|imperial knights|codex|kill team|primaris|warhammer 40)\b", re.I)
 WC = "https://www.warhammer-community.com"
