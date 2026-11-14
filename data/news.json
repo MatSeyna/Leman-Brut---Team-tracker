@@ -1,6 +1,13 @@
 {
- "fetched_at": "2026-11-14T06:59:51+00:00",
+ "fetched_at": "2026-11-14T18:29:03+00:00",
  "goonhammer": [
+  {
+   "title": "[40k] Competitive Innovations in 11th: Angels on the Outflank pt.2a",
+   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-angels-on-the-outflank-pt-2a/",
+   "date": "2026-11-14T14:00:12+00:00",
+   "summary": "We had to shuffle some things around this week, so here's Part 2a of Competitive Innovations this week. Part 2b will appear...soon!",
+   "image": null
+  },
   {
    "title": "[40k] Big Hat, Reviewed",
    "url": "https://www.tabletopbattles.com/40k-big-hat-reviewed/",
@@ -28,16 +35,18 @@
    "date": "2026-11-10T17:00:08+00:00",
    "summary": "Games Workshop's Battleforce boxes have arrived for 2026! Campbell \"SRM\" McLaughlin runs down what's in each of the 40K offerings and whether they're worth it.",
    "image": null
-  },
-  {
-   "title": "[40k] Weekend Update: November 9, 2026",
-   "url": "https://www.tabletopbattles.com/weekend-update-november-9-2026/",
-   "date": "2026-11-09T16:00:39+00:00",
-   "summary": "We look back at the major events and goings on over the weekend.",
-   "image": null
   }
  ],
  "wcfr": [
+  {
+   "title": "Précommandes du Samedi – Mettez la main sur votre Bataillon",
+   "url": "https://www.warhammer-community.com/fr-fr/articles/dyjkeu0w/precommandes-du-samedi-mettez-la-main-sur-votre-bataillon/",
+   "date": "2026-11-14T00:00:00+00:00",
+   "summary": "Faites des économies avec les boîtes d’armées de cette année pour la période des fêtes.",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-09-11/preorders-nov14-1-feature_fre-9yv0jjlwmb.jpg",
+   "lang": "fr",
+   "uuid": "dyjkeu0w"
+  },
   {
    "title": "The Adepta Sororitas make their presence known in Warhammer 40,000: Darktide",
    "url": "https://www.warhammer-community.com/en-gb/articles/xn0ljqav/the-adepta-sororitas-make-their-presence-known-in-warhammer-40000-darktide/",
@@ -73,15 +82,6 @@
    "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/1-feature-xs0jjlugpr.jpg",
    "lang": "en",
    "uuid": "htrydh0a"
-  },
-  {
-   "title": "Précommandes du Samedi – Rejoignez la Maison de Fer",
-   "url": "https://www.warhammer-community.com/fr-fr/articles/tbfqksyc/precommandes-du-samedi-rejoignez-la-maison-de-fer/",
-   "date": "2026-10-31T00:00:00+00:00",
-   "summary": "Régnez sur le sous-monde avec de nouvelles règles et figurines, et mettez la main sur quelques démons classiques de Tzeentch.",
-   "image": "https://assets.warhammer-community.com/articles/0-2026/october/wc26-10/preorders-oct31-1-feature_fre-litxsi2v59.jpg",
-   "lang": "fr",
-   "uuid": "tbfqksyc"
   }
  ]
 }
