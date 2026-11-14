@@ -37,6 +37,10 @@ header::after{content:"";display:block;height:8px;margin-top:10px;background:rep
 .bar button.on{background:linear-gradient(180deg,var(--ac),color-mix(in srgb,var(--ac) 68%,#000));color:var(--onac);border-color:var(--ac);font-weight:700}
 #nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:linear-gradient(rgba(var(--bgrgb),.96),rgba(var(--bgrgb),.82));backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #win button{padding:7px 10px;font-size:13px}
+.qk{display:flex;gap:6px;justify-content:flex-end;align-items:center;padding:6px 12px 0}
+.qk a,.qk button{flex:none;white-space:nowrap;border:1px solid var(--ac);background:rgba(var(--acrgb),.14);color:var(--tx);text-decoration:none;font-size:13px;font-weight:700;padding:7px 10px;border-radius:8px;line-height:1.1}
+.qk button{background:linear-gradient(180deg,var(--ac),color-mix(in srgb,var(--ac) 68%,#000));color:var(--onac)}.qk button:disabled{opacity:.45}
+.qk select{width:auto;flex:0 1 190px;min-width:0;margin:0;padding:7px 8px;font-size:13px}
 main{padding:8px 12px 40px;max-width:980px;margin:0 auto}
 .card{background:var(--card);border:1px solid var(--bd);border-left:3px solid var(--ac2);border-radius:10px;padding:12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(0,0,0,.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
 .scroll{overflow-x:auto}
@@ -143,13 +147,13 @@ try{
 <div id="bg"></div>
 <div id="splash"><h2>Leman Brut</h2><p>Chargement des données</p><div class="ld"><i></i></div></div>
 <header><div class="hd"><div id="acct"></div><div><h1>⚔ Leman Brut</h1><div class="mut" id="upd">Chargement…</div><div class="mut" id="sy"></div></div></div></header>
-<div id="nav"><div class="bar" id="tabs"></div><div class="bar" id="win"></div></div>
+<div id="nav"><div class="qk" id="qk"></div><div class="bar" id="tabs"></div><div class="bar" id="win"></div></div>
 <main id="v"></main>
 <script src="config.js"></script>
 <script>
 "use strict";
 var WK=[["week","Semaine"],["month","Mois"],["quarter","3 mois"]];
-var DATA=null,TREND={},LOADERR="",ANA=null,anaView="season",NEWS=null;
+var DATA=null,TREND={},LOADERR="",ANA=null,anaView="season",NEWS=null,FP=null;
 var tab="n",win=ld("win","month"),sortK="win_rate",sortD=-1,mFac=ld("mfac",""),mSort="games";
 function ld(k,d){try{var s=localStorage.getItem("lb_"+k);return s===null?d:JSON.parse(s)}catch(e){return d}}
 function sv(k,v){try{localStorage.setItem("lb_"+k,JSON.stringify(v));return true}catch(e){return false}}
@@ -164,7 +168,7 @@ var notes=ld("notes",{who:"Équipe",r:{}});
 /* ---------- données ---------- */
 function load(){
   var j=function(u){return fetch(u,{cache:"no-cache"}).then(function(r){if(!r.ok)throw new Error(u+" : HTTP "+r.status);return r.json()})};
-  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}}),j("data/analytics.json").catch(function(){return null}),j("data/news.json").catch(function(){return null})]).then(function(a){DATA=a[0];TREND=a[1]||{};ANA=a[2];NEWS=a[3]}).catch(function(e){LOADERR=String(e.message||e)});
+  return Promise.all([j("data/latest.json"),j("data/trend.json").catch(function(){return{}}),j("data/analytics.json").catch(function(){return null}),j("data/news.json").catch(function(){return null}),j("data/factionpacks.json").catch(function(){return null})]).then(function(a){DATA=a[0];TREND=a[1]||{};ANA=a[2];NEWS=a[3];FP=a[4]}).catch(function(e){LOADERR=String(e.message||e)});
 }
 function W(){return DATA&&DATA.windows&&DATA.windows[win]}
 function status(){
@@ -185,9 +189,33 @@ function delta(id){
   return ref?last[1]-ref[1]:null;
 }
 
+/* ---------- liens Warhammer Community (MFM + datasheets) ---------- */
+var MFM="https://mfm.warhammer-community.com/",WCDL="https://www.warhammer-community.com/fr-fr/downloads/warhammer-40000/";
+var ARMIES=[["adepta_sororitas","Adepta Sororitas"],["adeptus_custodes","Adeptus Custodes"],["adeptus_mechanicus","Adeptus Mechanicus"],["adeptus_titanicus","Adeptus Titanicus"],["aeldari","Aeldari"],["astra_militarum","Astra Militarum"],["black_templars","Black Templars"],["blood_angels","Blood Angels"],["chaos_daemons","Chaos Daemons"],["chaos_knights","Chaos Knights"],["chaos_space_marines","Chaos Space Marines"],["dark_angels","Dark Angels"],["death_guard","Death Guard"],["deathwatch","Deathwatch"],["drukhari","Drukhari"],["emperors_children","Emperor’s Children"],["genestealer_cults","Genestealer Cults"],["grey_knights","Grey Knights"],["imperial_agents","Imperial Agents"],["imperial_knights","Imperial Knights"],["leagues_of_votann","Leagues of Votann"],["necrons","Necrons"],["orks","Orks"],["space_marines","Space Marines"],["space_wolves","Space Wolves"],["tau_empire","T’au Empire"],["thousand_sons","Thousand Sons"],["tyranids","Tyranids"],["world_eaters","World Eaters"]];
+var army=ld("army","");
+function packs(){return(FP&&FP.packs)||{}}
+function armyList(){
+  var p=packs(),seen={},l=ARMIES.slice();ARMIES.forEach(function(a){seen[a[0]]=1});
+  Object.keys(p).forEach(function(k){if(!seen[k])l.push([k,p[k].name||k])});
+  return l.sort(function(a,b){return a[1].localeCompare(b[1])});
+}
+function qk(){
+  var el=document.getElementById("qk");if(!el)return;
+  el.innerHTML='<a href="'+MFM+'" target="_blank" rel="noopener" title="Munitorum Field Manual : points de toutes les unités, à jour">📜 Points (MFM)</a>'+
+    '<select id="army" aria-label="Mon armée" onchange="army=this.value;sv(\'army\',army);document.getElementById(\'agob\').disabled=!army">'+
+    '<option value="">Mon armée…</option>'+armyList().map(function(a){return'<option value="'+esc(a[0])+'"'+(army===a[0]?" selected":"")+">"+esc(a[1])+"</option>"}).join("")+
+    '</select><button id="agob" onclick="armyGo()"'+(army?"":" disabled")+' title="Ouvrir les datasheets à jour de mon armée">Go</button>';
+}
+function armyGo(){
+  if(!army)return;
+  var p=packs()[army],u=p&&p.url?p.url:WCDL;
+  var w=window.open(u,"_blank");if(w){try{w.opener=null}catch(e){}}else location.href=u;
+}
+
 /* ---------- navigation ---------- */
 var T=[["n","News"],["w","Win rates"],["m","Matchups"],["d","Dispositions"],["p","Événements"]];
 function nav(){
+  if(!document.getElementById("army"))qk();
   var ac=document.getElementById("acct");if(ac)ac.innerHTML=acctHtml();
   document.getElementById("tabs").innerHTML=T.map(function(t){return'<button class="'+(tab===t[0]?"on":"")+'" onclick="go(\''+t[0]+'\')">'+t[1]+"</button>"}).join("");
   var showWin=tab==="w"||tab==="m"||tab==="d";

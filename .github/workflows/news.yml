@@ -24,12 +24,16 @@ jobs:
       - run: pip install requests beautifulsoup4
       - name: Fetch latest 40k articles
         run: python scripts/scrape_news.py
+      - name: Find the current faction packs (datasheets)
+        if: always()
+        continue-on-error: true
+        run: python scripts/scrape_packs.py
       - name: Commit
         if: always()
         run: |
           git config user.name "leman-brut-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/news.json
+          git add data/news.json data/factionpacks.json
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
