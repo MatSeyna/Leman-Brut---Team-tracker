@@ -41,6 +41,10 @@ WINDOWS = {
     "month": "Last 4 weeks",
     "quarter": "Last 12 weeks",
 }
+# Sanity floor per window: below this, the page layout has probably changed.
+# The weekly window is naturally thin on quiet weeks (few tournaments
+# reported), so it gets a much lower floor than the longer windows.
+MIN_FACTIONS = {"week": 5, "month": 15, "quarter": 15}
 DISPOSITIONS = ["take and hold", "priority assets", "purge the foe", "reconnaissance", "disruption"]
 DELAY = float(os.environ.get("SCRAPE_DELAY", "1.2"))
 
@@ -337,8 +341,14 @@ def main():
             empty_windows.append(key)
             stale.append(f"{key}:no-data")
             continue
+        floor = MIN_FACTIONS.get(key, 15)
+        with_rate = sum(1 for f in factions if f["win_rate"] is not None)
+        if len(factions) < floor or with_rate < len(factions) // 2:
+            raise RuntimeError(f"[{key}] only {len(factions)} factions parsed "
+                               f"({with_rate} with a win rate) — page layout changed?")
         if len(factions) < 15:
-            raise RuntimeError(f"[{key}] only {len(factions)} factions parsed — page layout changed?")
+            print(f"[{key}] note: only {len(factions)} factions played in '{label}' "
+                  "(quiet period) — saving them anyway", file=sys.stderr)
         matrix, overall = parse_dispositions(soup)
         matchups = {}
         for f in factions:
