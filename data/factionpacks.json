@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-17T13:42:25+00:00",
+ "fetched_at": "2026-11-17T13:46:59+00:00",
  "source": "https://www.warhammer-community.com/en-gb/downloads/warhammer-40000/",
  "packs": {
   "adepta_sororitas": {
@@ -9,18 +9,18 @@
    "date": "14/10/2026",
    "lang": "en"
   },
-  "adeptus": {
-   "name": "Adeptus",
-   "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
-   "file": "eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
-   "date": "14/10/2026",
-   "lang": "en"
-  },
   "adeptus_custodes": {
    "name": "Adeptus Custodes",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_adeptus_custodes-xlscee8b1b-b1evo9u920.pdf",
    "file": "eng_30-09_wh40k_faction_pack_adeptus_custodes-xlscee8b1b-b1evo9u920.pdf",
    "date": "30/09/2026",
+   "lang": "en"
+  },
+  "adeptus_mechanicus": {
+   "name": "Adeptus Mechanicus",
+   "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
+   "file": "eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
+   "date": "14/10/2026",
    "lang": "en"
   },
   "adeptus_titanicus": {
