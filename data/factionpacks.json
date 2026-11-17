@@ -1,5 +1,5 @@
 {
- "fetched_at": "2026-11-17T14:22:53+00:00",
+ "fetched_at": "2026-11-17T14:24:13+00:00",
  "source": "https://www.warhammer-community.com/en-gb/downloads/warhammer-40000/",
  "packs": {
   "adepta_sororitas": {
@@ -7,175 +7,208 @@
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_adepta_sororitas-kby0nywexj-dg7kvr3iiy.pdf",
    "file": "eng_14-10_wh40k_-faction_pack_adepta_sororitas-kby0nywexj-dg7kvr3iiy.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "adeptus_custodes": {
    "name": "Adeptus Custodes",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_adeptus_custodes-xlscee8b1b-b1evo9u920.pdf",
    "file": "eng_30-09_wh40k_faction_pack_adeptus_custodes-xlscee8b1b-b1evo9u920.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "adeptus_mechanicus": {
    "name": "Adeptus Mechanicus",
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
    "file": "eng_14-10_wh40k_-faction_pack_adeptus-mechanicus-g0jwiuyz3x-f5itnst9j9.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "adeptus_titanicus": {
    "name": "Adeptus Titanicus",
    "url": "https://assets.warhammer-community.com/000_faction_pack_adeptus_titanicus-pkhrobh6xn-nmtoszeaxw.pdf",
    "file": "000_faction_pack_adeptus_titanicus-pkhrobh6xn-nmtoszeaxw.pdf",
    "date": "22/07/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "aeldari": {
    "name": "Aeldari",
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_aeldari-seqmcs1mu0-g8gzewikcm.pdf",
    "file": "eng_14-10_wh40k_-faction_pack_aeldari-seqmcs1mu0-g8gzewikcm.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "astra_militarum": {
    "name": "Astra Militarum",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_astra_militarum-1hevkhdpmv-stfkch2tsz.pdf",
    "file": "eng_30-09_wh40k_faction_pack_astra_militarum-1hevkhdpmv-stfkch2tsz.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "blood_angels": {
    "name": "Blood Angels",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_blood_angels-klcdcz9zip-wgf7iqk1vd.pdf",
    "file": "eng_30-09_wh40k_faction_pack_blood_angels-klcdcz9zip-wgf7iqk1vd.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "chaos_daemons": {
    "name": "Chaos Daemons",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_chaos_daemons-e67vyzvv3x-mownb49uc3.pdf",
    "file": "eng_30-09_wh40k_faction_pack_chaos_daemons-e67vyzvv3x-mownb49uc3.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "chaos_knights": {
    "name": "Chaos Knights",
    "url": "https://assets.warhammer-community.com/eng_wh40k_faction_pack_chaos_knights-87ywk2jovh-xk68yzyb18.pdf",
    "file": "eng_wh40k_faction_pack_chaos_knights-87ywk2jovh-xk68yzyb18.pdf",
    "date": "26/08/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "chaos_space_marines": {
    "name": "Chaos Space Marines",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_chaos_space_marines-xlmrglqa2b-zd2fzntrqu.pdf",
    "file": "eng_30-09_wh40k_faction_pack_chaos_space_marines-xlmrglqa2b-zd2fzntrqu.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "dark_angels": {
    "name": "Dark Angels",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_dark_angels-grkkeaxdr3-zkavqgpgvq.pdf",
    "file": "eng_30-09_wh40k_faction_pack_dark_angels-grkkeaxdr3-zkavqgpgvq.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "death_guard": {
    "name": "Death Guard",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_death_guard-bp5c8lcjq6-i4ew7urwyk.pdf",
    "file": "eng_30-09_wh40k_faction_pack_death_guard-bp5c8lcjq6-i4ew7urwyk.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "drukhari": {
    "name": "Drukhari",
    "url": "https://assets.warhammer-community.com/eng_wh40k_faction_pack_drukhari-p7mpvgnmnn-clii96hzh6.pdf",
    "file": "eng_wh40k_faction_pack_drukhari-p7mpvgnmnn-clii96hzh6.pdf",
    "date": "26/08/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "emperors_children": {
    "name": "Emperor’s Children",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_emperors_children-xp2mhzppxs-1cvykicdxu.pdf",
    "file": "eng_30-09_wh40k_faction_pack_emperors_children-xp2mhzppxs-1cvykicdxu.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "genestealer_cults": {
    "name": "Genestealer Cults",
    "url": "https://assets.warhammer-community.com/000_faction_pack_genestealer_cults-vmkwgeydbr-sh7picbeqo.pdf",
    "file": "000_faction_pack_genestealer_cults-vmkwgeydbr-sh7picbeqo.pdf",
    "date": "22/07/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "grey_knights": {
    "name": "Grey Knights",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_grey_knights-jnrahwb1qf-ubjtmdlivm.pdf",
    "file": "eng_30-09_wh40k_faction_pack_grey_knights-jnrahwb1qf-ubjtmdlivm.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "imperial_agents": {
    "name": "Imperial Agents",
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_-faction_pack_imperial_agents-5bv5lemlti-phvkqckp17.pdf",
    "file": "eng_14-10_wh40k_-faction_pack_imperial_agents-5bv5lemlti-phvkqckp17.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "imperial_knights": {
    "name": "Imperial Knights",
    "url": "https://assets.warhammer-community.com/eng_wh40k_faction_pack_imperial_knights-n1irjnjygs-w8jfnk8kdn.pdf",
    "file": "eng_wh40k_faction_pack_imperial_knights-n1irjnjygs-w8jfnk8kdn.pdf",
    "date": "26/08/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "leagues_of_votann": {
    "name": "Leagues of Votann",
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_faction_pack_leagues_of_votann-os3nsdjlao-buac8a7pzn.pdf",
    "file": "eng_14-10_wh40k_faction_pack_leagues_of_votann-os3nsdjlao-buac8a7pzn.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "necrons": {
    "name": "Necrons",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_necrons-1urphgbmpy-wbhocjbaba.pdf",
    "file": "eng_30-09_wh40k_faction_pack_necrons-1urphgbmpy-wbhocjbaba.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
+  },
+  "space_marines": {
+   "name": "Space Marines",
+   "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_printed_product_updates_space_marines_updates-91hillwcff-wzs8qnozam.pdf",
+   "file": "eng_14-10_wh40k_printed_product_updates_space_marines_updates-91hillwcff-wzs8qnozam.pdf",
+   "date": "14/10/2026",
+   "lang": "en",
+   "kind": "updates"
   },
   "space_wolves": {
    "name": "Space Wolves",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_space_wolves-zb02n7jqrg-4gggpsmndk.pdf",
    "file": "eng_30-09_wh40k_faction_pack_space_wolves-zb02n7jqrg-4gggpsmndk.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "thousand_sons": {
    "name": "Thousand Sons",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_thousand_sons-4lioijwxdj-otjrinzt8c.pdf",
    "file": "eng_30-09_wh40k_faction_pack_thousand_sons-4lioijwxdj-otjrinzt8c.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "tyranids": {
    "name": "Tyranids",
    "url": "https://assets.warhammer-community.com/eng_14-10_wh40k_faction_pack_tyranids-an12izciwp-np2hnkcsje.pdf",
    "file": "eng_14-10_wh40k_faction_pack_tyranids-an12izciwp-np2hnkcsje.pdf",
    "date": "14/10/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "tau_empire": {
    "name": "T’au Empire",
    "url": "https://assets.warhammer-community.com/eng_wh40k_faction_pack_tau_empire-sxhzmfrlud-mpzjzuhupn.pdf",
    "file": "eng_wh40k_faction_pack_tau_empire-sxhzmfrlud-mpzjzuhupn.pdf",
    "date": "26/08/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   },
   "world_eaters": {
    "name": "World Eaters",
    "url": "https://assets.warhammer-community.com/eng_30-09_wh40k_faction_pack_world_eaters-rxxj1fzeoh-kfx1cectxb.pdf",
    "file": "eng_30-09_wh40k_faction_pack_world_eaters-rxxj1fzeoh-kfx1cectxb.pdf",
    "date": "30/09/2026",
-   "lang": "en"
+   "lang": "en",
+   "kind": "pack"
   }
  }
 }
