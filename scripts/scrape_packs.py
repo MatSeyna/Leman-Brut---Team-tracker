@@ -106,6 +106,25 @@ def walk(o, found, date=None):
             found.append((absolute(m.group(0)), date))
 
 
+ANYPDF = re.compile(r"[A-Za-z0-9_./%:-]+\.pdf", re.I)
+
+
+def debug_missing(o):
+    """Temporary: show how the factions we do not find are listed by the site."""
+    if isinstance(o, dict):
+        txt = json.dumps(o, ensure_ascii=False)
+        low = txt.lower()
+        if ".pdf" in low and len(txt) < 4000 and any(w in low for w in ("marine", "ork", "templar", "deathwatch")):
+            title = {k: v for k, v in o.items() if isinstance(v, str) and not v.lower().endswith(".pdf") and len(v) < 120}
+            print("DEBUG", json.dumps(title, ensure_ascii=False)[:600], "|", ANYPDF.findall(txt)[:3])
+            return
+        for v in o.values():
+            debug_missing(v)
+    elif isinstance(o, list):
+        for v in o:
+            debug_missing(v)
+
+
 def from_text(text, found):
     text = html.unescape(text).replace("\\u002F", "/").replace("\\/", "/")
     for m in PDF.finditer(text):
@@ -127,7 +146,9 @@ def fetch_api(found):
             if r.ok:
                 before = len(found)
                 try:
-                    walk(r.json(), found)
+                    j = r.json()
+                    debug_missing(j)
+                    walk(j, found)
                 except ValueError:
                     from_text(r.text, found)
                 print("API", body.get("index"), "->", len(found) - before, "pack link(s)")
