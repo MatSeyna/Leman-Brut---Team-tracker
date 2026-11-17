@@ -64,7 +64,7 @@ ALIAS = {s: k for k, (_, ss) in FACTIONS.items() for s in ss}
 
 # e.g. eng_08-10_warhammer40000_faction_pack_adeptus_titanicus-ovucwiw1o6-jmk9dpdulj.pdf
 PDF = re.compile(r"[A-Za-z0-9_./%:-]*faction[_-]?pack[A-Za-z0-9_./%-]*\.pdf", re.I)
-SLUG = re.compile(r"faction[_-]?pack[_-]+([a-z0-9_]+?)(?:[_-]v?\d[\d_.-]*)?-[a-z0-9]{6,}", re.I)
+SLUG = re.compile(r"faction[_-]?pack[_-]+([a-z0-9_-]+?)(?:[_-]v?\d[\d_.-]*)?-[a-z0-9]{6,}-[a-z0-9]{6,}\.pdf$", re.I)
 LANG = re.compile(r"^(eng|en|fra|fre|fr|ger|de|spa|es|ita|it|jpn|jp|chi|zh|kor|pol|rus)[_-]", re.I)
 DATEKEYS = ("date_universal", "date", "updated_at", "last_updated", "updated", "modified", "published")
 
@@ -84,7 +84,7 @@ def parse(url):
     m = SLUG.search(file)
     if not m:
         return None
-    slug = m.group(1).lower().strip("_")
+    slug = m.group(1).lower().replace("-", "_").strip("_")
     key = ALIAS.get(slug.replace("_", ""))
     name = FACTIONS[key][0] if key else slug.replace("_", " ").title()
     lm = LANG.match(file)
