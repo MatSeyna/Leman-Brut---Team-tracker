@@ -11,7 +11,6 @@ end $$;
 
 create table if not exists profiles (
   id uuid primary key references auth.users on delete cascade,
-  email text not null,
   pseudo text not null,
   approved boolean not null default false,
   is_admin boolean not null default false,
@@ -67,17 +66,15 @@ create or replace function shares_team(u uuid) returns boolean language sql stab
     where a.user_id = auth.uid() and a.status = 'active' and b.user_id = u)
 $$;
 
--- Création automatique du profil. Le compte matthieu.seynaeve.pro@hotmail.com devient
--- l'administrateur « Iscalis » (il doit confirmer cette adresse par e-mail pour se connecter).
+-- Création automatique du profil (sans e-mail : seul le pseudo est stocké).
+-- Pour désigner l'administrateur après sa première connexion :
+--   update profiles set is_admin = true, approved = true where pseudo = 'SonPseudo';
 create or replace function handle_new_user() returns trigger language plpgsql security definer set search_path = public as $$
-declare p text; adm boolean;
+declare p text;
 begin
-  adm := lower(new.email) = 'matthieu.seynaeve.pro@hotmail.com';
-  p := coalesce(nullif(trim(new.raw_user_meta_data ->> 'pseudo'), ''), split_part(new.email, '@', 1));
-  if adm then p := 'Iscalis';
-  elsif lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé';
-  end if;
-  insert into profiles (id, email, pseudo, approved, is_admin) values (new.id, new.email, left(p, 30), adm, adm);
+  p := left(coalesce(nullif(trim(new.raw_user_meta_data ->> 'pseudo'), ''), 'joueur-' || left(new.id::text, 8)), 30);
+  if lower(p) = 'iscalis' then raise exception 'Ce pseudo est réservé'; end if;
+  insert into profiles (id, pseudo, approved, is_admin) values (new.id, p, false, false);
   return new;
 end $$;
 drop trigger if exists on_auth_user_created on auth.users;
@@ -207,12 +204,8 @@ end $$;
 grant execute on function set_pseudo(text) to authenticated;
 
 -- Comptes créés avant l'exécution de ce script : on leur crée leur profil maintenant.
-insert into profiles (id, email, pseudo, approved, is_admin)
-select u.id, u.email,
-  case when lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com' then 'Iscalis'
-       else left(coalesce(nullif(trim(u.raw_user_meta_data ->> 'pseudo'), ''), split_part(u.email, '@', 1)), 30) end,
-  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com',
-  lower(u.email) = 'matthieu.seynaeve.pro@hotmail.com'
+insert into profiles (id, pseudo, approved, is_admin)
+select u.id, left(coalesce(nullif(trim(u.raw_user_meta_data ->> 'pseudo'), ''), 'joueur-' || left(u.id::text, 8)), 30), false, false
 from auth.users u
 where not exists (select 1 from profiles p where p.id = u.id)
 on conflict do nothing;
@@ -234,4 +227,5 @@ do $$ begin
   end if;
 end $$;
 
+-- Ensuite, exécuter supabase/securite.sql (droits au plus juste, double authentification).
 notify pgrst, 'reload schema';

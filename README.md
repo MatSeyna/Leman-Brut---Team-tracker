@@ -37,4 +37,4 @@ Check MiniHeadQuarters' terms of use before relying on this, or ask them for per
 1. Créer un projet gratuit sur supabase.com, exécuter `supabase/schema.sql` dans *SQL Editor*.
 2. *Authentication → URL Configuration* : « Site URL » = l'adresse de l'app. Garder « Confirm email » activé.
 3. Mettre l'URL du projet et la clé *anon public* dans `config.js` (ou les coller dans l'onglet Équipe).
-4. Le compte `matthieu.seynaeve.pro@hotmail.com` devient automatiquement l'administrateur **Iscalis** (après confirmation de l'e-mail). Les autres comptes doivent être validés par lui, puis chaque joueur demande à rejoindre une équipe, validé par un responsable ou capitaine.
+4. Exécuter aussi `supabase/securite.sql`. L'administrateur est désigné une fois dans *SQL Editor* (`update profiles set is_admin = true, approved = true where pseudo = '…'`) et doit activer la double authentification dans son profil. Les autres comptes doivent être validés par lui, puis chaque joueur demande à rejoindre une équipe, validé par un responsable ou capitaine.
