@@ -63,8 +63,10 @@ FACTIONS = {
 ALIAS = {s: k for k, (_, ss) in FACTIONS.items() for s in ss}
 
 # e.g. eng_08-10_warhammer40000_faction_pack_adeptus_titanicus-ovucwiw1o6-jmk9dpdulj.pdf
-PDF = re.compile(r"[A-Za-z0-9_./%:-]*faction[_-]?pack[A-Za-z0-9_./%-]*\.pdf", re.I)
-SLUG = re.compile(r"faction[_-]?pack[_-]+([a-z0-9_-]+?)(?:[_-]v?\d[\d_.-]*)?-[a-z0-9]{6,}-[a-z0-9]{6,}\.pdf$", re.I)
+# Factions with a recent codex get "Printed Product Updates" instead of a Faction Pack,
+# e.g. eng_14-10_wh40k_printed_product_updates_space_marines_updates-91hillwcff-wzs8qnozam.pdf
+PDF = re.compile(r"[A-Za-z0-9_./%:-]*(?:faction[_-]?pack|printed[_-]?product[_-]?updates)[A-Za-z0-9_./%-]*\.pdf", re.I)
+SLUG = re.compile(r"(?:faction[_-]?pack|printed[_-]?product[_-]?updates)[_-]+([a-z0-9_-]+?)(?:[_-]v?\d[\d_.-]*)?-[a-z0-9]{6,}-[a-z0-9]{6,}\.pdf$", re.I)
 LANG = re.compile(r"^(eng|en|fra|fre|fr|ger|de|spa|es|ita|it|jpn|jp|chi|zh|kor|pol|rus)[_-]", re.I)
 DATEKEYS = ("date_universal", "date", "updated_at", "last_updated", "updated", "modified", "published")
 
@@ -85,11 +87,16 @@ def parse(url):
     if not m:
         return None
     slug = m.group(1).lower().replace("-", "_").strip("_")
+    slug = re.sub(r"_updates$", "", slug)
     key = ALIAS.get(slug.replace("_", ""))
     name = FACTIONS[key][0] if key else slug.replace("_", " ").title()
     lm = LANG.match(file)
     lang = (lm.group(1).lower() if lm else "eng")[:2]
     return key or slug, name, lang
+
+
+def kind(url):
+    return "updates" if re.search(r"printed[_-]?product[_-]?updates", url, re.I) else "pack"
 
 
 def walk(o, found, date=None):
@@ -104,25 +111,6 @@ def walk(o, found, date=None):
     elif isinstance(o, str):
         for m in PDF.finditer(o):
             found.append((absolute(m.group(0)), date))
-
-
-ANYPDF = re.compile(r"[A-Za-z0-9_./%:-]+\.pdf", re.I)
-
-
-def debug_missing(o):
-    """Temporary: show how the factions we do not find are listed by the site."""
-    if isinstance(o, dict):
-        txt = json.dumps(o, ensure_ascii=False)
-        low = txt.lower()
-        if ".pdf" in low and len(txt) < 4000 and any(w in low for w in ("marine", "ork", "templar", "deathwatch")):
-            title = {k: v for k, v in o.items() if isinstance(v, str) and not v.lower().endswith(".pdf") and len(v) < 120}
-            print("DEBUG", json.dumps(title, ensure_ascii=False)[:600], "|", ANYPDF.findall(txt)[:3])
-            return
-        for v in o.values():
-            debug_missing(v)
-    elif isinstance(o, list):
-        for v in o:
-            debug_missing(v)
 
 
 def from_text(text, found):
@@ -146,9 +134,7 @@ def fetch_api(found):
             if r.ok:
                 before = len(found)
                 try:
-                    j = r.json()
-                    debug_missing(j)
-                    walk(j, found)
+                    walk(r.json(), found)
                 except ValueError:
                     from_text(r.text, found)
                 print("API", body.get("index"), "->", len(found) - before, "pack link(s)")
@@ -178,11 +164,11 @@ def newest(found):
         if not p:
             continue
         key, name, lang = p
-        rank = (lang == "en", date or "", -i)
+        rank = (lang == "en", kind(url) == "pack", date or "", -i)
         cur = packs.get(key)
         if cur is None or rank > cur["_rank"]:
             packs[key] = {"name": name, "url": url, "file": url.rsplit("/", 1)[-1],
-                          "date": date, "lang": lang, "_rank": rank}
+                          "date": date, "lang": lang, "kind": kind(url), "_rank": rank}
     for v in packs.values():
         v.pop("_rank")
     return dict(sorted(packs.items(), key=lambda kv: kv[1]["name"].lower()))
