@@ -1,6 +1,27 @@
 {
- "fetched_at": "2026-11-20T07:44:03+00:00",
+ "fetched_at": "2026-11-20T20:42:38+00:00",
  "goonhammer": [
+  {
+   "title": "[40k] Competitive Innovations in 11th: Make Some Space, Marines pt.2",
+   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-make-some-space-marines-pt-2/",
+   "date": "2026-11-20T16:30:37+00:00",
+   "summary": "Exciting new Templars and Custodes builds headling the next part of Competitive Innovations.",
+   "image": null
+  },
+  {
+   "title": "[40k] Ruleshammer 11th Edition: Moving Monsters",
+   "url": "https://www.tabletopbattles.com/40k-ruleshammer-11th-edition-moving-monsters/",
+   "date": "2026-11-20T16:00:21+00:00",
+   "summary": "This week in Ruleshammer we look at the MONSTER keyword movement rules, and the edge cases surrounding them.",
+   "image": null
+  },
+  {
+   "title": "[40k] Competitive Innovations in 11th: Angels on the Outflank pt.2",
+   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-angels-on-the-outflank-pt-2/",
+   "date": "2026-11-20T14:30:54+00:00",
+   "summary": "Traitor Marines make their presence known in part 2 of last week's Competitive Innovations, coming to you a slight bit late!",
+   "image": null
+  },
   {
    "title": "[40k] Competitive Innovations in 11th: Make Some Space, Marines pt.1",
    "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-make-some-space-marines-pt-1/",
@@ -13,20 +34,6 @@
    "url": "https://www.tabletopbattles.com/40k-weekend-update-november-16-2026/",
    "date": "2026-11-16T21:03:40+00:00",
    "summary": "We cover the major events and goings on of the weekend in competitive Warhammer and StarCraft.",
-   "image": null
-  },
-  {
-   "title": "[40k] Competitive Innovations in 11th: Angels on the Outflank pt.2a",
-   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-angels-on-the-outflank-pt-2a/",
-   "date": "2026-11-14T14:00:12+00:00",
-   "summary": "We had to shuffle some things around this week, so here's Part 2a of Competitive Innovations this week. Part 2b will appear...soon!",
-   "image": null
-  },
-  {
-   "title": "[40k] Ruleshammer 11th Edition: Adeptus Custodes",
-   "url": "https://www.tabletopbattles.com/40k-ruleshammer-11th-edition-adeptus-custodes/",
-   "date": "2026-11-13T14:00:56+00:00",
-   "summary": "This week in Ruleshammer we're jumping in on Adeptus Custodes, who have some interesting technically-non-binding rulings coming out of WCW FAQ.",
    "image": null
   }
  ],
