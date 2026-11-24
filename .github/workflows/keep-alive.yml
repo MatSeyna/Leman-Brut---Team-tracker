@@ -23,7 +23,7 @@ jobs:
           URL=$(grep -oE 'https://[a-z0-9]+\.supabase\.co' config.js | head -1)
           KEY=$(grep -oE 'sb_publishable_[A-Za-z0-9_-]+' config.js | head -1)
           CODE=$(curl -s -o /tmp/resp.txt -w '%{http_code}' \
-            "$URL/rest/v1/lb_docs?select=*&limit=1" \
+            -X POST "$URL/rest/v1/rpc/keep_alive" -H "Content-Type: application/json" -d "{}" \
             -H "apikey: $KEY")
           echo "HTTP $CODE"; head -c 300 /tmp/resp.txt; echo
           # A failure here (e.g. project already paused) makes GitHub email you
