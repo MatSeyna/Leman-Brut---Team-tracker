@@ -229,3 +229,15 @@ end $$;
 
 -- Ensuite, exécuter supabase/securite.sql (droits au plus juste, double authentification).
 notify pgrst, 'reload schema';
+
+-- Keep-alive : appelée tous les 3 jours par .github/workflows/keep-alive.yml
+-- pour éviter la mise en pause du projet gratuit. Ne renvoie que l'heure, aucune donnée.
+create or replace function public.keep_alive()
+returns timestamptz
+language sql
+stable
+security invoker
+set search_path = ''
+as $$ select now() $$;
+revoke all on function public.keep_alive() from public;
+grant execute on function public.keep_alive() to anon, authenticated;
