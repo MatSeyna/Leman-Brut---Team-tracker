@@ -1,6 +1,13 @@
 {
- "fetched_at": "2026-11-25T09:08:20+00:00",
+ "fetched_at": "2026-11-25T21:58:22+00:00",
  "goonhammer": [
+  {
+   "title": "[40K] Competitive Innovations in 11th: Hark, Angels pt.1",
+   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-hark-angels-pt-1/",
+   "date": "2026-11-25T14:00:52+00:00",
+   "summary": "We are once again reporting that Dark Angels are winning lots of games. Shocking scenes in part 1 of Competitive Innovations.",
+   "image": null
+  },
   {
    "title": "Competitive Intel: 40K WCW Army Lists from Our Team",
    "url": "https://www.tabletopbattles.com/competitive-intel-40k-wcw-army-lists-from-our-team/",
@@ -28,16 +35,18 @@
    "date": "2026-11-21T14:00:09+00:00",
    "summary": "A 9th Edition throwback as Drukhari and Tyranids clash on the top tables, while Marines continue to loom over everything else.",
    "image": null
-  },
-  {
-   "title": "[40k] Competitive Innovations in 11th: Make Some Space, Marines pt.2",
-   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-make-some-space-marines-pt-2/",
-   "date": "2026-11-20T16:30:37+00:00",
-   "summary": "Exciting new Templars and Custodes builds headling the next part of Competitive Innovations.",
-   "image": null
   }
  ],
  "wcfr": [
+  {
+   "title": "Warhammer 40,000 stats at a glance – World Championships of Warhammer 2026",
+   "url": "https://www.warhammer-community.com/en-gb/articles/sozb6fcs/warhammer-40000-stats-at-a-glance-world-championships-of-warhammer-2026/",
+   "date": "2026-11-25T00:00:00+00:00",
+   "summary": "See which factions will be most popular in Barcelona next week.",
+   "image": "https://assets.warhammer-community.com/worldchamps_40kstats-nov25-1-feature-znan2rbt8p.jpg",
+   "lang": "en",
+   "uuid": "sozb6fcs"
+  },
   {
    "title": "Nouvelle bande-annonce Dawn of War IV – et un sous-mains à obtenir en magasins",
    "url": "https://www.warhammer-community.com/fr-fr/articles/p6yqw1br/nouvelle-bande-annonce-dawn-of-war-iv-et-un-sous-mains-a-obtenir-en-magasins/",
@@ -73,15 +82,6 @@
    "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-02-11/sundaypreview-nov08-1-feature_fre-lu4oyf0oc3.jpg",
    "lang": "fr",
    "uuid": "rufkxsxw"
-  },
-  {
-   "title": "The Butcher's Nails and Astartes II release dates",
-   "url": "https://www.warhammer-community.com/en-gb/articles/f8ue9xw9/the-butchers-nails-and-astartes-ii-release-dates/",
-   "date": "2026-11-06T00:00:00+00:00",
-   "summary": "Animated carnage this winter on Warhammer TV.",
-   "image": "https://assets.warhammer-community.com/1-feature-dcf0qpfgjk.jpg",
-   "lang": "en",
-   "uuid": "f8ue9xw9"
   }
  ]
 }
