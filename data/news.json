@@ -1,6 +1,13 @@
 {
- "fetched_at": "2026-11-27T09:04:02+00:00",
+ "fetched_at": "2026-11-27T21:38:08+00:00",
  "goonhammer": [
+  {
+   "title": "[40k] Ruleshammer 11th Edition: Coherency",
+   "url": "https://www.tabletopbattles.com/40k-ruleshammer-11th-edition-coherency/",
+   "date": "2026-11-27T16:00:36+00:00",
+   "summary": "This week's Ruleshammer covers coherency, and how the specific version of the rule works in 11th edition.",
+   "image": null
+  },
   {
    "title": "[40K] Competitive Innovations in 11th: Hark, Angels pt.1",
    "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-hark-angels-pt-1/",
@@ -28,16 +35,18 @@
    "date": "2026-11-23T01:36:28+00:00",
    "summary": "In our second subscriber-only piece of the week, Rob looks at how to conceptually plan a turn of competitive 40K.",
    "image": null
-  },
-  {
-   "title": "[40k] Competitive Innovations in 11th: Make Some Space, Marines pt.3",
-   "url": "https://www.tabletopbattles.com/40k-competitive-innovations-in-11th-make-some-space-marines-pt-3/",
-   "date": "2026-11-21T14:00:09+00:00",
-   "summary": "A 9th Edition throwback as Drukhari and Tyranids clash on the top tables, while Marines continue to loom over everything else.",
-   "image": null
   }
  ],
  "wcfr": [
+  {
+   "title": "Watch The Butcher’s Nails now",
+   "url": "https://www.warhammer-community.com/en-gb/articles/2kmzjoy4/watch-the-butchers-nails-now/",
+   "date": "2026-11-27T00:00:00+00:00",
+   "summary": "The new Warhammer 40,000 animation has dropped on Warhammer TV.",
+   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-23-11/butchersnails-nov27-1-feature-bsikvdqgkz.jpg",
+   "lang": "en",
+   "uuid": "2kmzjoy4"
+  },
   {
    "title": "Show your true colours in Dawn of War IV",
    "url": "https://www.warhammer-community.com/en-gb/articles/zpan8d3y/show-your-true-colours-in-dawn-of-war-iv/",
@@ -73,15 +82,6 @@
    "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-23-11/dow_gametrailer-nov23-1-feature-dlurh0gifn.jpg",
    "lang": "fr",
    "uuid": "p6yqw1br"
-  },
-  {
-   "title": "Précommandes du Samedi – Mettez la main sur votre Bataillon",
-   "url": "https://www.warhammer-community.com/fr-fr/articles/dyjkeu0w/precommandes-du-samedi-mettez-la-main-sur-votre-bataillon/",
-   "date": "2026-11-14T00:00:00+00:00",
-   "summary": "Faites des économies avec les boîtes d’armées de cette année pour la période des fêtes.",
-   "image": "https://assets.warhammer-community.com/articles/0-2026/november/wc-09-11/preorders-nov14-1-feature_fre-9yv0jjlwmb.jpg",
-   "lang": "fr",
-   "uuid": "dyjkeu0w"
   }
  ]
 }
